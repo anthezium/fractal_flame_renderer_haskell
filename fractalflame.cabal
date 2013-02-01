@@ -1,0 +1,17 @@
+Name: fractalflame
+Version: 0.1
+Synopsis: An implementation of Scott Draves' Fractal Flame algorithm.
+Description: 
+  Implements the Fractal Flame algorithm for rendering fixed-point solutions 
+  to Iterated Function Sets as 2D images in Haskell.  
+  Based on Scott Draves' paper, available at http://flam3.com/flame.pdf.
+  This algorithm is used to render the images appearing in Draves' popular
+  ElectricSheep screensaver, available at electricsheep.org.
+Author: Ted Cooper
+Maintainer: anthezium@gmail.com
+License: BSD3
+License-file: LICENSE
+
+library
+  Exposed-Modules: FractalFlame.Main
+  Build-Depends: base
