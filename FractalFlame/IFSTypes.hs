@@ -1,5 +1,7 @@
 module IFSTypes where
 
+import Data.Monoid
+
 type Coord = Double
 type FloatChannel = Double
 
@@ -18,16 +20,18 @@ instance Monoid Color where
 scaleColor :: Color -> Color
 scaleColor (Color r g b a) =
   let s = log a / a
+      scale channel = s * channel 
   in
-    (Color scale r scale g scale b)
-  where scale channel = s * channel
+    (Color (scale r) (scale g) (scale b) (scale a))
 
 gammaColor :: FloatChannel -> FloatChannel -> Color -> Color
 gammaColor vibrancy gamma (Color r g b a) =
-  let alphaGamma = a ^ (1 / gamma)
+  let alphaGamma = a ** (1 / gamma)
+      correct channel = vibrancy * alphaGamma * channel + (1 - vibrancy) * channel ** (1 / gamma)
   in
-    (Color correct r correct g correct b correct a)
-  where correct channel = vibrancy * alphaGamma * channel + (1 - vibrancy) * channel ^ (1 / gamma)
+    (Color (correct r) (correct g) (correct b) (correct a))
+
+type Palette = Coord -> Color -- should return Color with alpha channel 1.0
 
 data Point = Point {
     x :: Coord
@@ -58,14 +62,16 @@ data LinearParams = LinearParams {
   , yc :: Coord
   }
 
-{- corresponding linear pre- and post-transforms and the associated color index -}
-data LinearTriple = LinearTriple {
-    pre  :: Maybe Transform -- transform before variations are run
-  , post :: Maybe Transform -- transform after variations are run
-  , colorVal :: Coord -- color associated with these transforms
+{- base transforms (as opposed to variations) -}
+data BaseTransform = BaseTransform {
+    basePre  :: Maybe Transform -- transform before variations are run
+  , basePost :: Maybe Transform -- transform after variations are run
+  , baseColorVal :: Coord -- color associated with these transforms
+  , baseWeight :: Coord -- likelihood of selection by IFS, value from 0 to 1
   }
+
 
 data Plottable = Plottable {
     point :: Point
-  , colorVal :: Coord
+  , plottableColorVal :: Coord
   }

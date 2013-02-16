@@ -1,5 +1,9 @@
 module Variation where
 
+import Data.Monoid
+
+import IFSTypes
+
 applyVariations :: [Variation] -> Point -> Point
 applyVariations []   point = point
 applyVariations vars point =

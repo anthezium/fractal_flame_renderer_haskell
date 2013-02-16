@@ -1,8 +1,8 @@
-module Flame (
-    Pixel
-  , PixelFlame
-  ) where
+module Flame where
 
+import Data.Array
+--import Data.Array.IArray
+import Data.Int
 import Data.Word
 
 type IntChannel = Word8
@@ -17,9 +17,7 @@ data Pixel = Pixel {
   }
 
 data PixelFlame = PixelFlame {
-    width :: Int
-  , height :: Int
+    flameWidth :: Int
+  , flameHeight :: Int
   , pixels :: Array Int Pixel --should switch this to unboxed array of bytes at some point for performance
   }
-
-

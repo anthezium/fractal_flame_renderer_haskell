@@ -1,34 +1,68 @@
 module IFS where
 
 import IFSTypes
+import Variation
 
-ifs iterationsToDiscard = do
-  drop iterationsToDiscard . ifsHelper
-
+ifs :: Int
+    -> (Point -> Bool)
+    -> Point
+    -> Coord
+    -> [BaseTransform]
+    -> [Variation]
+    -> Maybe Transform
+    -> Maybe Coord
+    -> [Plottable]
+ifs iterationsToDiscard 
+    rangeCheck 
+    lastPoint 
+    lastColorVal
+    (xform:baseTransforms) 
+    variations 
+    final 
+    finalColorVal = do
+  drop iterationsToDiscard $ ifsHelper rangeCheck 
+                                       lastPoint 
+                                       lastColorVal
+                                       (xform:baseTransforms) 
+                                       variations 
+                                       final 
+                                       finalColorVal
+                                             
+ifsHelper :: (Point -> Bool)                 
+          -> Point                           
+          -> Coord                           
+          -> [BaseTransform]                 
+          -> [Variation]
+          -> Maybe Transform
+          -> Maybe Coord
+          -> [Plottable]
 ifsHelper rangeCheck 
           lastPoint 
           lastColorVal
-          ((pre, post, colorVal):linearTriples) 
+          (xform:baseTransforms) 
           variations 
           final 
           finalColorVal =
-  let prePoint = maybe lastPoint ($ lastPoint) pre
+  let pre = basePre xform
+      post = basePost xform
+      colorVal = baseColorVal xform
+      prePoint = maybe lastPoint ($ lastPoint) pre
       varsPoint = applyVariations variations prePoint
       postPoint = maybe varsPoint ($ varsPoint) post
       transColorVal = (lastColorVal + colorVal) / 2
       finalPoint = maybe postPoint ($ postPoint) final
-      finalColorVal = (transColorVal + finalColorVal) / 2
+      fcv = maybe transColorVal (\cv -> (transColorVal + cv) / 2) finalColorVal
   in
     let next = ifsHelper rangeCheck
                          finalPoint -- iterate regardless of range check
-                         finalColorVal
-                         linearTriples
+                         fcv
+                         baseTransforms
                          variations
                          final
                          finalColorVal
     in
       if rangeCheck finalPoint then
-        ((Plottable finalPoint finalColorVal):next)
+        ((Plottable finalPoint fcv):next)
       else
         next
 
