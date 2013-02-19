@@ -1,4 +1,4 @@
-module Flame where
+module FractalFlame.Flame where
 
 import Data.Array
 --import Data.Array.IArray

@@ -1,8 +1,8 @@
-module Variation where
+module FractalFlame.Variation where
 
 import Data.Monoid
 
-import IFSTypes
+import FractalFlame.IFSTypes
 
 applyVariations :: [Variation] -> Point -> Point
 applyVariations []   point = point

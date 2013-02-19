@@ -1,7 +1,7 @@
-module IFS where
+module FractalFlame.IFS where
 
-import IFSTypes
-import Variation
+import FractalFlame.IFSTypes
+import FractalFlame.Variation
 
 ifs :: Int
     -> (Point -> Bool)
@@ -46,23 +46,29 @@ ifsHelper rangeCheck
   let pre = basePre xform
       post = basePost xform
       colorVal = baseColorVal xform
+      -- apply first affine transformation if specified
       prePoint = maybe lastPoint ($ lastPoint) pre
+      -- apply variations
       varsPoint = applyVariations variations prePoint
+      -- apply affine post-transformation if specified
       postPoint = maybe varsPoint ($ varsPoint) post
+      -- blend last and new color indices
       transColorVal = (lastColorVal + colorVal) / 2
-      finalPoint = maybe postPoint ($ postPoint) final
-      fcv = maybe transColorVal (\cv -> (transColorVal + cv) / 2) finalColorVal
+      -- apply final affine transformation if specified
+      nextPoint = maybe postPoint ($ postPoint) final
+      -- blend with final color index if specified
+      nextColorVal = maybe transColorVal (\cv -> (transColorVal + cv) / 2) finalColorVal
   in
     let next = ifsHelper rangeCheck
-                         finalPoint -- iterate regardless of range check
-                         fcv
+                         nextPoint -- iterate regardless of range check
+                         nextColorVal
                          baseTransforms
                          variations
                          final
                          finalColorVal
     in
-      if rangeCheck finalPoint then
-        ((Plottable finalPoint fcv):next)
+      if rangeCheck nextPoint then
+        ((Plottable nextPoint nextColorVal):next)
       else
         next
 

@@ -1,6 +1,6 @@
-module LinearTransformation where
+module FractalFlame.LinearTransformation where
 
-import IFSTypes
+import FractalFlame.IFSTypes
 
 linearTransformation :: LinearParams -> Transform
 linearTransformation (LinearParams xx xy xc yx yy yc) = 

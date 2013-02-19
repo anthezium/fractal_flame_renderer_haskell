@@ -1,4 +1,4 @@
-module IFSTypes where
+module FractalFlame.IFSTypes where
 
 import Data.Monoid
 

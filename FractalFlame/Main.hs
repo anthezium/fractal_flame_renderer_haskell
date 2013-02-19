@@ -1,17 +1,17 @@
-module Demo where
+module Main where
 
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import System.Random
 
-import Generator
-import GLDisplay
-import Histogram
-import IFS
-import IFSTypes
-import LinearTransformation
+import FractalFlame.Generator
+import FractalFlame.GLDisplay
+import FractalFlame.Histogram
+import FractalFlame.IFS
+import FractalFlame.IFSTypes
+import FractalFlame.LinearTransformation
 
-demoPalette colorVal = (Color (sin 2*pi*colorVal) (cos 2*pi*colorVal) (tan 2*pi*colorVal) 1)
+demoPalette colorVal = (Color (sin $ 2*pi*colorVal) (cos $ 2*pi*colorVal) (tan $ 2*pi*colorVal) 1)
 
 demoBaseTransforms :: [BaseTransform]
 demoBaseTransforms = 
@@ -28,6 +28,12 @@ demoBaseTransforms =
                , ((LinearParams   0.5   0.0   0.5   0.0 (-0.5)   0.0 ), 1/5)
                , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5) (-0.5)), 0/5)
                ]
+{-
+  let params = [ ((LinearParams    0.5   0.0   0.0   0.0   0.5   0.0 ), 0/2)
+               , ((LinearParams    0.5   0.0   0.25  0.0   0.5  (0.5*(sqrt 3)/2)), 1/2)
+               , ((LinearParams    0.5   0.0   0.5   0.0   0.5   0.0), 2/2)
+               ]
+               -}
   in
     map (\(params, colorVal) -> (BaseTransform (Just $ linearTransformation params) Nothing colorVal 1)) params
 
@@ -43,12 +49,12 @@ vibrancy = 0.5
 gamma = 2.2
 
 rangeCheck :: Point -> Bool
-rangeCheck (Point x y) = -1 <= x && x <= 1 && -1 <= y && y <= -1
+rangeCheck (Point x y) = -1 <= x && x <= 1 && -1 <= y && y <= 1
 
 main :: IO ()
 main = do
   s <- newStdGen
-  let [x, y, cv] = unGen (sequence [choose (-1,1), choose (-1,1), choose (0,1)]) s 1
+  let [x, y, firstColorVal] = unGen (sequence [choose (-1,1), choose (-1,1), choose (0,1)]) s 1
       firstPoint = (Point x y)
       -- yeah I know we're reusing the first two randoms
       baseTransforms = sampleBaseTransforms s demoBaseTransforms
@@ -59,7 +65,7 @@ main = do
       plottables = ifs iterationsToDiscard
                        rangeCheck
                        firstPoint
-                       cv
+                       firstColorVal
                        baseTransforms
                        variations
                        final

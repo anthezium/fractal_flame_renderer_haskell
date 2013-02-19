@@ -1,4 +1,4 @@
-module GLDisplay (
+module FractalFlame.GLDisplay (
     displayLoop
   ) where
   
@@ -7,7 +7,7 @@ import Foreign(newArray)
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import Graphics.UI.GLUT
 
-import Flame
+import FractalFlame.Flame
 
 --data State = State { size :: IORef Size }
 type Image = PixelData (Color3 GLubyte)

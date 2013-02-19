@@ -1,21 +1,21 @@
-module Histogram where
+module FractalFlame.Histogram where
 
 import Control.Monad
 import Control.Monad.ST
 import Data.Array.ST
 import Data.Monoid
 
-import Flame
-import IFSTypes
+import FractalFlame.Flame
+import FractalFlame.IFSTypes
 
 {- get some performance out of assuming the action is in ([-1,1],[-1,1]) -}
 pointToIndex width height (Point x y) =
   let wshift = fromIntegral (div width 2) :: Coord
       hshift = fromIntegral (div height 2) :: Coord
       x' = x
-      y' = (-1) * y -- flip it upside-down since increasing height is down
-      px = truncate ((x' * wshift) + wshift) :: Int 
-      py = truncate ((y' * hshift) + hshift) :: Int
+      y' = y 
+      px = round ((x' * wshift) + wshift) :: Int 
+      py = round ((y' * hshift) + hshift) :: Int
   in 
     px + py * width
 
