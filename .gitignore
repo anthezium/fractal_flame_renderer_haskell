@@ -1,1 +1,7 @@
-*.sw[po]
+*.sw[mnlpo]
+*.o
+*.hi
+*.aux
+*.hp
+*.ps
+dist
