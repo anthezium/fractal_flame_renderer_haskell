@@ -1,9 +1,9 @@
-To set up:
+* To set up:
 
-  runghc Setup configure
-  runghc Setup build
-  runghc Setup install
+  runghc Setup configure  
+  runghc Setup build  
+  runghc Setup install  
 
-To run:
+* To run:
 
   $HOME/bin/demo
