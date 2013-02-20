@@ -13,7 +13,7 @@ Maintainer:     Ted Cooper <anthezium@gmail.com>
 License:        BSD3
 License-file:   LICENSE
 cabal-version:  >= 1.6
-build-type:     Simple
+build-type:     Custom
 
 executable demo
   main-is: FractalFlame/Main.hs
