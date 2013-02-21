@@ -42,6 +42,16 @@ instance Monoid Point where
   mempty = (Point 0 0)
   mappend (Point x1 y1) (Point x2 y2) = (Point (x1 + x2) (y1 + y2))
 
+data GridPoint = GridPoint {
+    px :: Int
+  , py :: Int
+  }
+
+data Size = Size {
+    sizeWidth :: Int
+  , sizeHeight :: Int
+  }
+
 type Transform = Point -> Point
 
 data Variation = Variation {
@@ -72,6 +82,6 @@ data BaseTransform = BaseTransform {
 
 
 data Plottable = Plottable {
-    point :: Point
+    plottablePoint :: Point
   , plottableColorVal :: Coord
   }

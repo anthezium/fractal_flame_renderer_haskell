@@ -5,23 +5,22 @@ import Control.Monad.ST
 import Data.Array.ST
 import Data.Monoid
 
+import FractalFlame.Camera
 import FractalFlame.Flame
 import FractalFlame.IFSTypes
 
-{- get some performance out of assuming the action is in ([-1,1],[-1,1]) -}
-pointToIndex width height (Point x y) =
-  let wshift = fromIntegral (div width 2) :: Coord
-      hshift = fromIntegral (div height 2) :: Coord
-      x' = x
-      y' = y 
-      px = round ((x' * wshift) + wshift) :: Int 
-      py = round ((y' * hshift) + hshift) :: Int
-  in 
-    px + py * width
 
 plotWithPalette :: Palette -> Coord -> Color -> Color
 plotWithPalette palette colorVal color =
   mappend color $ palette colorVal
+
+pointToIndex :: Camera -> Point -> Int
+pointToIndex camera point =
+      --TODO(ted): Fix this kind of ugly naming with per-type modules and -XDisambiguateRecordNames or lenses(?)
+  let width = sizeWidth . cameraSize $ camera
+      (GridPoint px py) = project camera point
+  in
+    px + py * width
 
 colorToPixel :: Color -> Pixel
 colorToPixel (Color r g b a) =
@@ -31,9 +30,11 @@ colorToPixel (Color r g b a) =
     (convert b))
   where convert channel = truncate $ channel * fromIntegral intChannelMax
 
-render :: Int -> Int -> Palette -> FloatChannel -> FloatChannel -> [Plottable] -> PixelFlame
-render width height palette vibrancy gamma plottables = 
-  let mapping = pointToIndex width height
+render :: Camera -> Palette -> FloatChannel -> FloatChannel -> [Plottable] -> PixelFlame
+render camera palette vibrancy gamma plottables = 
+  let mapping = pointToIndex camera
+      width = sizeWidth . cameraSize $ camera
+      height = sizeHeight . cameraSize $ camera
       plot = plotWithPalette palette
       gammaCorrect = gammaColor vibrancy gamma 
       maxIx = width * height

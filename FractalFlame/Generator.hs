@@ -19,7 +19,6 @@ infiniteSample s items =
   in 
     infiniteListGen s $ oneof gens
 
---need to add a function that uses weights to meet the paper spec
 weightedInfiniteSample :: StdGen -> [(Coord, a)] -> [a]
 weightedInfiniteSample s freqItems =
   let n = length freqItems
@@ -30,6 +29,20 @@ weightedInfiniteSample s freqItems =
 -- infinite list that samples a list of BaseTransforms based on their weights
 sampleBaseTransforms :: StdGen -> [BaseTransform] -> [BaseTransform]
 sampleBaseTransforms s = weightedInfiniteSample s . map (\xform -> (baseWeight xform, xform))
+
+-- random variables for initialization
+genFirstPoint :: StdGen -> Point
+genFirstPoint s =
+  let (x, s1) = randomR (-1, 1) s
+      (y, s2) = randomR (-1, 1) s1
+  in
+    Point x y
+
+genFirstColorVal :: StdGen -> Coord
+genFirstColorVal s =
+  let (cv, _) = randomR (0, 1) s
+  in
+    cv
 
 -- random variables for use in variations
 
