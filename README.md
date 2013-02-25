@@ -1,3 +1,10 @@
+* ##### What is this?
+  This is a renderer for fractals written in Haskell.  It uses an Iterated Function System and color palette to render and display a fractal.
+
+  It is an incomplete implementation of Scott Draves' flam3 algorithm, described here: http://flam3.com/flame.pdf and here: http://code.google.com/p/flam3/wiki/Introduction
+  
+  It's a work in progress.  I'm working towards producing equivalent results to Draves' flam3-render. 
+
 * ##### To set up:
   ###### You need the haskell platform (available here): 
     http://www.haskell.org/platform/  
