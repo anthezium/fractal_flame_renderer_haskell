@@ -1,79 +1,93 @@
 module Main where
 
+import Control.Monad
+import Data.Array
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import System.Random
 
 import FractalFlame.Camera
+import FractalFlame.Flame
 import FractalFlame.Generator
 import FractalFlame.GLDisplay
 import FractalFlame.Histogram
 import FractalFlame.IFS
 import FractalFlame.IFSTypes
 import FractalFlame.LinearTransformation
+import FractalFlame.Palette
+import FractalFlame.ParseFlam3
 
-demoPalette colorVal = (Color (sin $ 2*pi*colorVal) (cos $ 2*pi*colorVal) (tan $ 2*pi*colorVal) 1)
+--demoPalette colorVal = (Color (sin $ 2*pi*colorVal) (cos $ 2*pi*colorVal) (tan $ 2*pi*colorVal) 1)
 
-demoBaseTransforms :: [BaseTransform]
-demoBaseTransforms = 
-{-
-  let params = [ ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.0 ), 0/5)
-               , ((LinearParams   0.5   0.0   0.5   0.0   0.5    0.0 ), 1/5)
-               , ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.5 ), 2/5)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0   0.5    0.0 ), 3/5)
-               , ((LinearParams (-0.5)  0.0 (-0.5)  0.0   0.5    0.0 ), 4/5)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0   0.5    0.5 ), 5/5)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0 (-0.5)   0.0 ), 5/5)
-               , ((LinearParams (-0.5)  0.0 (-0.5)  0.0 (-0.5)   0.0 ), 4/5)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0 (-0.5) (-0.5)), 3/5)
-               , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5)   0.0 ), 2/5)
-               , ((LinearParams   0.5   0.0   0.5   0.0 (-0.5)   0.0 ), 1/5)
-               , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5) (-0.5)), 0/5)
+initDemoPalette :: IO Palette
+initDemoPalette = do
+  flam3 <- parseFlam3 "flam3/electricsheep.244.73060.flam3"
+  let fcs = colors flam3
+  return $ buildPalette fcs
+
+paramsToBaseTransforms =
+    map (\(params, colorVal, weight) -> 
+      (BaseTransform (Just $ linearTransformation params) Nothing colorVal weight))
+
+blahBaseTransforms :: [BaseTransform]
+blahBaseTransforms = 
+  let params = [ ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.0 ), 0/5, 1)
+               , ((LinearParams   0.5   0.0   0.5   0.0   0.5    0.0 ), 1/5, 1)
+               , ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.5 ), 2/5, 1)
+               , ((LinearParams (-0.5)  0.0   0.0   0.0   0.5    0.0 ), 3/5, 1)
+               , ((LinearParams (-0.5)  0.0 (-0.5)  0.0   0.5    0.0 ), 4/5, 1)
+               , ((LinearParams (-0.5)  0.0   0.0   0.0   0.5    0.5 ), 5/5, 1)
+               , ((LinearParams (-0.5)  0.0   0.0   0.0 (-0.5)   0.0 ), 5/5, 1)
+               , ((LinearParams (-0.5)  0.0 (-0.5)  0.0 (-0.5)   0.0 ), 4/5, 1)
+               , ((LinearParams (-0.5)  0.0   0.0   0.0 (-0.5) (-0.5)), 3/5, 1)
+               , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5)   0.0 ), 2/5, 1)
+               , ((LinearParams   0.5   0.0   0.5   0.0 (-0.5)   0.0 ), 1/5, 1)
+               , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5) (-0.5)), 0/5, 1)
                ]
--}
-  let params = [ ((LinearParams    0.5   0.0   0.0   0.0   0.5   0.0 ), 0/2)
-               , ((LinearParams    0.5   0.0   0.25  0.0   0.5  (0.5*(sqrt 3)/2)), 1/2)
-               , ((LinearParams    0.5   0.0   0.5   0.0   0.5   0.0), 2/2)
+  in paramsToBaseTransforms params
+
+sierpinskiBaseTransforms =
+  let params = [ ((LinearParams    0.5   0.0   0.0   0.0   0.5   0.0),             0/2, 1)
+               , ((LinearParams    0.5   0.0   0.25  0.0   0.5  (0.5*(sqrt 3)/2)), 1/2, 1)
+               , ((LinearParams    0.5   0.0   0.5   0.0   0.5   0.0),             2/2, 1)
                ]
-  in
-    map (\(params, colorVal) -> (BaseTransform (Just $ linearTransformation params) Nothing colorVal 1)) params
+  in paramsToBaseTransforms params
 
 demoVariations :: [Variation]
 demoVariations = []
 
 -- camera
-width = 320
-height = 320
+width = 640
+height = 640
 camera = Camera { cameraSize = (Size width height)
                 , cameraCenter = (Point 0.5 0.5)
                 , cameraScale = 160
                 , cameraRotate = 0
-                , cameraZoom = 1
+                , cameraZoom = 3.95
                 }
 
 iterationsToDiscard = 20
-quality = 12
+quality = 20
 samples = width * height * quality
-vibrancy = 0.5
-gamma = 2.2
-
--- rangeCheck :: Point -> Bool
--- rangeCheck (Point x y) = -1 <= x && x <= 1 && -1 <= y && y <= 1
+vibrancy = 0.6
+gamma = 3
 
 main :: IO ()
 main = do
   s <- newStdGen
+  demoPalette <- initDemoPalette
   let (s1, s2) = split s
       firstPoint = genFirstPoint s1
       (s3, s4) = split s2
       firstColorVal = genFirstColorVal s3
       rangeCheck = inCameraCheck camera
-      baseTransforms = sampleBaseTransforms s2 demoBaseTransforms
+      baseTransforms = sampleBaseTransforms s2 sierpinskiBaseTransforms
       variations = demoVariations
       final = Nothing
       finalColorVal = Nothing
-      -- create infinite list of plottables
-      plottables = ifs iterationsToDiscard
+      -- set up infinite list of plottables
+      plottables = take samples $ 
+                     ifs iterationsToDiscard
                        rangeCheck
                        firstPoint
                        firstColorVal
@@ -86,8 +100,18 @@ main = do
                      demoPalette 
                      vibrancy
                      gamma
-                     (take samples plottables) 
+                     plottables' 
+      --pixels' = pixels flame
+{-
+  -- print some plottables 
+  forM_ (take 100 plottables') (\plottable -> do
+    putStrLn $ show plottable)
+-}
+{-
+  -- print bright pixels
+  forM_ (filter (\(Color r g b a) -> r > 0.2 && g > 0.2 && b > 0.2) . elems $ pixels') (putStrLn . show)
   -- display pixels
+-}
   displayLoop flame
 
 

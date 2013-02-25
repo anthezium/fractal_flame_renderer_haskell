@@ -18,40 +18,44 @@ data Camera = Camera {
 -- point in the output image grid
 project :: Camera -> Point -> GridPoint
 project camera@(Camera size@(Size width height) 
-                       center
+                       center@(Point cx cy)
                        scale
                        rotate
                        zoom)
         point@(Point x y) =
-  let (wshift, hshift, rx, ry) = cameraDimensions camera
+  let (wshift, hshift, dx, dy) = cameraDimensions camera
       (Point x' y') = rotateBy center rotate point
-      px = round (x' / rx * wshift + wshift) :: Int 
-      py = round (y' / ry * hshift + hshift) :: Int
+      px = round ((x' - cx) / dx * wshift + wshift) :: Int 
+      py = round ((y' - cy) / dy * hshift + hshift) :: Int
   in 
     GridPoint px py
 
 -- is this point inside the viewport(?)?
 inCameraCheck :: Camera -> Point -> Bool
 inCameraCheck camera@(Camera size@(Size width height)
-                             center
+                             center@(Point cx cy)
                              scale
                              rotate
                              zoom)
               (Point x y) =
-  let (_, _, rx, ry) = cameraDimensions camera
+  let (_, _, dx, dy) = cameraDimensions camera
       rot = rotateBy center rotate
-      ur' = rot $ Point   rx    ry
-      lr' = rot $ Point   rx  (-ry)
-      ll' = rot $ Point (-rx) (-ry)
-      ul' = rot $ Point (-rx)   ry
-      -- top ul'x = ul'y
-      top = lineFunc ul' ur'
-      -- right ur'y = ur'x
-      right = invLineFunc ur' lr'
-      -- bottom ll'x = ll'y
-      bottom = lineFunc ll' lr'
-      -- left ul'y = ul'x
-      left = invLineFunc ul' ll'
+      rx = dx + cx
+      lx = cx - dx
+      ty = dy + cy
+      by = cy - dy
+      tr' = rot $ Point rx ty
+      br' = rot $ Point rx by
+      bl' = rot $ Point lx by
+      tl' = rot $ Point lx ty
+      -- top tl'x = tl'y
+      top = lineFunc tl' tr'
+      -- right tr'y = tr'x
+      right = invLineFunc tr' br'
+      -- bottom bl'x = bl'y
+      bottom = lineFunc bl' br'
+      -- left tl'y = tl'x
+      left = invLineFunc tl' bl'
   in
        bottom x <= y && y <= top x
     && left y <= x && x <= right y
@@ -88,10 +92,10 @@ cameraDimensions (Camera size@(Size width height)
                          zoom) =
   let wshift = fromIntegral (div width 2) :: Coord
       hshift = fromIntegral (div height 2) :: Coord
-      rx = wshift / scale / zoom
-      ry = hshift / scale / zoom
+      dx = wshift / scale / zoom
+      dy = hshift / scale / zoom
   in
-    (wshift, hshift, rx, ry)  
+    (wshift, hshift, dx, dy)  
 
 -- jacked from flam3.c
 rotateBy :: Point -> Coord -> Point -> Point

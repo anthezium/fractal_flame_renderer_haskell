@@ -17,10 +17,17 @@ build-type:     Custom
 
 executable demo
   main-is: FractalFlame/Main.hs
-  Build-Depends: 
+  build-depends: 
     base,
     array,
     GLUT,
     QuickCheck,
-    random
-  GHC-Options: -rtsopts -with-rtsopts=-K128000000
+    random,
+    hxt,
+    regexpr
+  ghc-options: -O -rtsopts -with-rtsopts=-K128000000
+  extensions:
+    Arrows, 
+    BangPatterns,
+    NoMonomorphismRestriction,
+    ScopedTypeVariables

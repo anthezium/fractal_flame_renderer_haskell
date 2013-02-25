@@ -33,8 +33,8 @@ sampleBaseTransforms s = weightedInfiniteSample s . map (\xform -> (baseWeight x
 -- random variables for initialization
 genFirstPoint :: StdGen -> Point
 genFirstPoint s =
-  let (x, s1) = randomR (-1, 1) s
-      (y, s2) = randomR (-1, 1) s1
+  let (x, s1) = randomR (-1, 1) s :: (Coord, StdGen) -- why won't it infer this?
+      (y, _) = randomR (-1, 1) s1
   in
     Point x y
 
@@ -48,10 +48,7 @@ genFirstColorVal s =
 
 -- random number [0,pi]
 psi :: StdGen -> [Coord]
-psi s = 
-  let (x, s') = randomR (0, pi) s
-  in
-    (x:(psi s'))
+psi s = randomRs (0, pi) s
 
 -- random number 0 or pi
 omega :: StdGen -> [Coord]

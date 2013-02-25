@@ -2,41 +2,14 @@ module FractalFlame.IFSTypes where
 
 import Data.Monoid
 
-type Coord = Double
-type FloatChannel = Double
+import FractalFlame.Flame
 
-data Color = Color {
-    r :: FloatChannel
-  , g :: FloatChannel
-  , b :: FloatChannel
-  , a :: FloatChannel
-  }
-
-instance Monoid Color where
-  mempty = (Color 0 0 0 0)
-  mappend (Color r1 g1 b1 a1) (Color r2 b2 g2 a2) = 
-    (Color (r1 + r2) (g1 + g2) (b1 + b2) (a1 + a2))
-    
-scaleColor :: Color -> Color
-scaleColor (Color r g b a) =
-  let s = log a / a
-      scale channel = s * channel 
-  in
-    (Color (scale r) (scale g) (scale b) (scale a))
-
-gammaColor :: FloatChannel -> FloatChannel -> Color -> Color
-gammaColor vibrancy gamma (Color r g b a) =
-  let alphaGamma = a ** (1 / gamma)
-      correct channel = vibrancy * alphaGamma * channel + (1 - vibrancy) * channel ** (1 / gamma)
-  in
-    (Color (correct r) (correct g) (correct b) (correct a))
-
-type Palette = Coord -> Color -- should return Color with alpha channel 1.0
+type Coord = Double 
 
 data Point = Point {
     x :: Coord
   , y :: Coord
-  }
+  } deriving (Show)
 
 instance Monoid Point where
   mempty = (Point 0 0)
@@ -80,8 +53,26 @@ data BaseTransform = BaseTransform {
   , baseWeight :: Coord -- likelihood of selection by IFS, value from 0 to 1
   }
 
-
 data Plottable = Plottable {
     plottablePoint :: Point
   , plottableColorVal :: Coord
-  }
+  } deriving (Show)
+
+data Flam3Flame = Flam3Flame {
+    colors :: [Flam3Color]
+  } deriving (Show)
+
+data Flam3Color = Flam3Color {
+    index :: Int
+  , rgb :: Color
+  } deriving (Show)
+
+flam3RGBChannelMin = fromIntegral intChannelMin
+flam3RGBChannelMax = fromIntegral intChannelMax
+
+instance Eq Flam3Color where
+  f1 == f2 = (index f1) == (index f2)
+
+instance Ord Flam3Color where
+  f1 `compare` f2 = (index f1) `compare` (index f2)
+

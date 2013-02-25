@@ -23,8 +23,11 @@ ifs iterationsToDiscard
     final 
     finalColorVal = 
   let plottableCheck = rangeCheck . plottablePoint
-      helper lastPoint 
-             lastColorVal
+      -- strictly evaluate lastPoint and lastColorVal since they only depend on preceding list items,
+      -- for which we have no reason to keep thunks. (we need thunks for the subsequent items because
+      -- the list is infinite)
+      helper !lastPoint 
+             !lastColorVal
              (xform:baseTransforms') = 
         let pre = basePre xform
             post = basePost xform
@@ -42,7 +45,7 @@ ifs iterationsToDiscard
             -- blend with final color index if specified
             thisColorVal = maybe transColorVal (\cv -> (transColorVal + cv) / 2) finalColorVal
             this = Plottable thisPoint thisColorVal
-            next = helper thisPoint -- iterate regardless of range check
+            next = helper thisPoint 
                           thisColorVal
                           baseTransforms'
         in
