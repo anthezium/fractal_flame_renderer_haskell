@@ -57,13 +57,13 @@ demoVariations :: [Variation]
 demoVariations = []
 
 -- camera
-width = 640
-height = 640
+width = 400
+height = 400
 camera = Camera { cameraSize = (Size width height)
                 , cameraCenter = (Point 0.5 0.5)
-                , cameraScale = 160
+                , cameraScale = 200
                 , cameraRotate = 0
-                , cameraZoom = 3.95
+                , cameraZoom = 1.9
                 }
 
 iterationsToDiscard = 20
@@ -100,7 +100,7 @@ main = do
                      demoPalette 
                      vibrancy
                      gamma
-                     plottables' 
+                     plottables 
       --pixels' = pixels flame
 {-
   -- print some plottables 

@@ -1,0 +1,12 @@
+#!/bin/bash
+# adapted from http://www.haskell.org/haskellwiki/How_to_profile_a_Haskell_program
+
+PROG=demo
+VIEW=gv
+
+runhaskell Setup configure --enable-executable-profiling --user
+runhaskell Setup.lhs build
+dist/build/${PROG}/${PROG} +RTS  -p -hc -s${PROG}.summary
+hp2ps ${PROG}.hp
+${VIEW} ${PROG}.ps
+cat ${PROG}.summary
