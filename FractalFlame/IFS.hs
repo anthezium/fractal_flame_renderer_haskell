@@ -6,8 +6,8 @@ import FractalFlame.Variation
 -- an infinite list of points and corresponding color values in the 
 -- specified IFS (Iterated Function System)
 ifs :: Int
-    -> (Point -> Bool)
-    -> Point
+    -> (CartesianPoint -> Bool)
+    -> CartesianPoint
     -> Coord
     -> [BaseTransform]
     -> [Variation]

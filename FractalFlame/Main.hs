@@ -17,6 +17,9 @@ import FractalFlame.LinearTransformation
 import FractalFlame.Palette
 import FractalFlame.ParseFlam3
 
+-- Most of the stuff in this module is temporary.  As the renderer moves closer to being able to render flam3s as is,
+-- the hardcoded values for xforms, the camera, etc. will be replaced by "parse flam3, render as it specifies, display"
+
 --demoPalette colorVal = (Color (sin $ 2*pi*colorVal) (cos $ 2*pi*colorVal) (tan $ 2*pi*colorVal) 1)
 
 initDemoPalette :: IO Palette
@@ -57,11 +60,11 @@ demoVariations :: [Variation]
 demoVariations = []
 
 -- camera
-width = 400
-height = 400
+width = 100
+height = 100
 camera = Camera { cameraSize = (Size width height)
                 , cameraCenter = (Point 0.5 0.5)
-                , cameraScale = 200
+                , cameraScale = 50
                 , cameraRotate = 0
                 , cameraZoom = 1.9
                 }
@@ -81,13 +84,13 @@ main = do
       (s3, s4) = split s2
       firstColorVal = genFirstColorVal s3
       rangeCheck = inCameraCheck camera
-      baseTransforms = sampleBaseTransforms s2 sierpinskiBaseTransforms
+      baseTransforms = {-# SCC "baseTransforms" #-} sampleBaseTransforms s2 sierpinskiBaseTransforms
       variations = demoVariations
       final = Nothing
       finalColorVal = Nothing
       -- set up infinite list of plottables
-      plottables = take samples $ 
-                     ifs iterationsToDiscard
+      plottables = take samples $
+                    ifs iterationsToDiscard
                        rangeCheck
                        firstPoint
                        firstColorVal

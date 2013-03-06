@@ -1,38 +1,43 @@
 module FractalFlame.IFSTypes where
 
 import Data.Monoid
+import Graphics.UI.GLUT (GLdouble)
 
 import FractalFlame.Flame
 
-type Coord = Double 
+type Coord = GLdouble 
 
-data Point = Point {
-    x :: Coord
-  , y :: Coord
+data Point a = Point {
+    x :: a
+  , y :: a
   } deriving (Show)
 
-instance Monoid Point where
-  mempty = (Point 0 0)
+instance Functor Point where
+  fmap f (Point x y) = (Point (f x) (f y))
+
+type CartesianPoint = Point Coord
+
+-- seems like I should be able to generalize this to Monoid a => Monoid (Point a), 
+-- but how to make the mempty/mappend definitions not recursive?
+instance Num a => Monoid (Point a) where
+  mempty = (Point 0 0) 
   mappend (Point x1 y1) (Point x2 y2) = (Point (x1 + x2) (y1 + y2))
 
-data GridPoint = GridPoint {
-    px :: Int
-  , py :: Int
-  }
+type GridPoint = Point Int
 
 data Size = Size {
     sizeWidth :: Int
   , sizeHeight :: Int
   }
 
-type Transform = Point -> Point
+type Transform = CartesianPoint -> CartesianPoint
 
 data Variation = Variation {
     coefficient :: Coord
   , transform :: Transform
   }
 
-scalePoint :: Coord -> Point -> Point
+scalePoint :: Num a => a -> Point a -> Point a
 scalePoint coeff (Point x y) = (Point (x * coeff) (y * coeff)) 
 
 {- 2-dimensional linear transformation matrix constants -}
@@ -54,7 +59,7 @@ data BaseTransform = BaseTransform {
   }
 
 data Plottable = Plottable {
-    plottablePoint :: Point
+    plottablePoint :: CartesianPoint
   , plottableColorVal :: Coord
   } deriving (Show)
 

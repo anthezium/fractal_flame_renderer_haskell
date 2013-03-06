@@ -8,7 +8,7 @@ import FractalFlame.IFSTypes
 
 data Camera = Camera {
     cameraSize :: Size
-  , cameraCenter :: Point
+  , cameraCenter :: CartesianPoint
   , cameraScale :: Coord
   , cameraRotate :: Coord
   , cameraZoom :: Coord
@@ -16,7 +16,7 @@ data Camera = Camera {
 
 -- transform a point in the IFS coordinate system to a
 -- point in the output image grid
-project :: Camera -> Point -> GridPoint
+project :: Camera -> CartesianPoint -> GridPoint
 project camera@(Camera size@(Size width height) 
                        center@(Point cx cy)
                        scale
@@ -28,10 +28,10 @@ project camera@(Camera size@(Size width height)
       px = round ((x' - cx) / dx * wshift + wshift) :: Int 
       py = round ((y' - cy) / dy * hshift + hshift) :: Int
   in 
-    GridPoint px py
+    Point px py
 
 -- is this point inside the viewport(?)?
-inCameraCheck :: Camera -> Point -> Bool
+inCameraCheck :: Camera -> CartesianPoint -> Bool
 inCameraCheck camera@(Camera size@(Size width height)
                              center@(Point cx cy)
                              scale
@@ -62,7 +62,7 @@ inCameraCheck camera@(Camera size@(Size width height)
 
 -- helpers
 
-lineFunc :: Point -> Point -> Coord -> Coord
+lineFunc :: Floating a => Point a -> Point a -> a -> a
 lineFunc p1@(Point x1 y1)
          p2@(Point x2 y2) 
          x =
@@ -77,7 +77,7 @@ lineFunc p1@(Point x1 y1)
     m * x + b
 
 -- TODO(ted): include a test that verifies that invLineFunc is the inverse of lineFunc
-invLineFunc :: Point -> Point -> (Coord -> Coord)
+invLineFunc :: Floating a => Point a -> Point a -> (a -> a)
 invLineFunc p1@(Point x1 y1)
             p2@(Point x2 y2) =
   lineFunc (Point y1 x1) (Point y2 x2)
@@ -98,7 +98,7 @@ cameraDimensions (Camera size@(Size width height)
     (wshift, hshift, dx, dy)  
 
 -- jacked from flam3.c
-rotateBy :: Point -> Coord -> Point -> Point
+rotateBy :: Floating a => Point a -> a -> Point a -> Point a
 rotateBy (Point cx cy) rotate (Point x y) =
       -- find vector relative to center
   let dx = x - cx

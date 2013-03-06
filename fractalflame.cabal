@@ -24,7 +24,8 @@ executable demo
     QuickCheck,
     random,
     hxt,
-    regexpr
+    regexpr,
+    unordered-containers
   ghc-options: -O -rtsopts -with-rtsopts=-K128000000
   extensions:
     Arrows, 

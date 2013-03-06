@@ -11,7 +11,7 @@ infiniteListGen :: StdGen -> Gen a -> [a]
 infiniteListGen s g =
   let gen = mapM (\_ -> g) [1..]
   in
-    unGen gen s 1
+    {-# SCC "infiniteListGen" #-} unGen gen s 1
 
 infiniteSample :: StdGen -> [a] -> [a]
 infiniteSample s items = 
@@ -31,7 +31,7 @@ sampleBaseTransforms :: StdGen -> [BaseTransform] -> [BaseTransform]
 sampleBaseTransforms s = weightedInfiniteSample s . map (\xform -> (baseWeight xform, xform))
 
 -- random variables for initialization
-genFirstPoint :: StdGen -> Point
+genFirstPoint :: StdGen -> CartesianPoint
 genFirstPoint s =
   let (x, s1) = randomR (-1, 1) s :: (Coord, StdGen) -- why won't it infer this?
       (y, _) = randomR (-1, 1) s1

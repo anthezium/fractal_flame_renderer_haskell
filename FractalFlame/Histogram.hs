@@ -17,11 +17,11 @@ plotWithPalette :: Palette -> Coord -> Color -> Color
 plotWithPalette palette colorVal color =
   mappend color $ palette colorVal
 
-pointToIndex :: Camera -> Point -> Int
+pointToIndex :: Camera -> CartesianPoint -> Int
 pointToIndex camera point =
       --TODO(ted): Fix this kind of ugly naming with per-type modules and -XDisambiguateRecordNames or lenses(?)
   let width = sizeWidth . cameraSize $ camera
-      (GridPoint px py) = project camera point
+      (Point px py) = project camera point
   in
     px + py * width
 
@@ -37,7 +37,8 @@ render camera palette vibrancy gamma plottables =
     let (amax :: Double, colors :: Array Int Color) = runST $ do
                            -- accumulate color values at points that map to each pixel
                            -- when I switch to Repa, seems like the V (boxed vectors) representation is appropriate 
-                           colors <- newArray (0, maxIx) (Color 0 0 0 0) :: ST s (STArray s Int Color)
+                           colors <- newArray (0, maxIx) (Color 0 0 0 0) :: ST s (STArray s Int Coord)
+                           -- need to find the maximum alpha to use for scaling all other alpha values
                            amax <- newSTRef floatChannelMin
                            forM_ plottables (\(Plottable point colorVal) -> do
                              let ix = mapping point
