@@ -18,15 +18,16 @@ build-type:     Custom
 executable demo
   main-is: FractalFlame/Main.hs
   build-depends: 
-    base,
     array,
+    base,
     GLUT,
+    hxt,
     QuickCheck,
     random,
-    hxt,
     regexpr,
-    unordered-containers
-  ghc-options: -O -rtsopts -with-rtsopts=-K128000000
+    unordered-containers,
+    vector
+  ghc-options: -O -rtsopts
   extensions:
     Arrows, 
     BangPatterns,

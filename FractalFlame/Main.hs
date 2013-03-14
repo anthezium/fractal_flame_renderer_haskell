@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad
 import Data.Array
+import qualified Data.Vector.Storable as SV
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import System.Random
@@ -19,8 +20,6 @@ import FractalFlame.ParseFlam3
 
 -- Most of the stuff in this module is temporary.  As the renderer moves closer to being able to render flam3s as is,
 -- the hardcoded values for xforms, the camera, etc. will be replaced by "parse flam3, render as it specifies, display"
-
---demoPalette colorVal = (Color (sin $ 2*pi*colorVal) (cos $ 2*pi*colorVal) (tan $ 2*pi*colorVal) 1)
 
 initDemoPalette :: IO Palette
 initDemoPalette = do
@@ -60,11 +59,11 @@ demoVariations :: [Variation]
 demoVariations = []
 
 -- camera
-width = 100
-height = 100
+width = 400
+height = 400
 camera = Camera { cameraSize = (Size width height)
                 , cameraCenter = (Point 0.5 0.5)
-                , cameraScale = 50
+                , cameraScale = 200
                 , cameraRotate = 0
                 , cameraZoom = 1.9
                 }
@@ -104,7 +103,6 @@ main = do
                      vibrancy
                      gamma
                      plottables 
-      --pixels' = pixels flame
 {-
   -- print some plottables 
   forM_ (take 100 plottables') (\plottable -> do
@@ -112,9 +110,9 @@ main = do
 -}
 {-
   -- print bright pixels
-  forM_ (filter (\(Color r g b a) -> r > 0.2 && g > 0.2 && b > 0.2) . elems $ pixels') (putStrLn . show)
-  -- display pixels
+  forM_ (filter (\(Color r g b a) -> r > 0.2 && g > 0.2 && b > 0.2) . flame2Colors $ flame) (putStrLn . show)
 -}
+  -- display pixels
   displayLoop flame
 
 

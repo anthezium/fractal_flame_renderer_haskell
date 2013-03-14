@@ -2,11 +2,11 @@ module FractalFlame.Histogram where
 
 import Control.Monad
 import Control.Monad.ST
-import Data.Array
-import Data.Array.ST
-import qualified Data.Array.Unsafe as Unsafe
 import Data.Monoid
 import Data.STRef
+import qualified Data.Vector as V
+import qualified Data.Vector.Storable as SV
+import qualified Data.Vector.Storable.Mutable as MV
 
 import FractalFlame.Camera
 import FractalFlame.Flame
@@ -23,7 +23,30 @@ pointToIndex camera point =
   let width = sizeWidth . cameraSize $ camera
       (Point px py) = project camera point
   in
-    px + py * width
+    nFloatChannels * (px + py * width)
+
+-- put this into ColorVec implementation for MVector
+--readColor :: ST s (MV.MVector s FloatChannel) -> Int -> ST s Color
+readColor vec ix = do
+  r <- MV.unsafeRead vec  ix
+  g <- MV.unsafeRead vec (ix + 1)
+  b <- MV.unsafeRead vec (ix + 2)
+  a <- MV.unsafeRead vec (ix + 3)
+  {-
+  slice <- Unsafe.unsafeFreeze $ MV.unsafeSlice ix nFloatChannels vec 
+  [r,g,b,a] <- SV.toList slice
+  -}
+  return $ Color r g b a
+
+--writeColor :: ST s (MV.MVector s FloatChannel) -> Int -> Color -> ST s ()
+writeColor vec ix (Color r g b a) = do
+  mapM_ (uncurry $ MV.unsafeWrite vec)
+        [(ix    , r)
+        ,(ix + 1, g)
+        ,(ix + 2, b)
+        ,(ix + 3, a)
+        ]
+  return ()
 
 render :: Camera -> Palette -> FloatChannel -> FloatChannel -> [Plottable] -> PixelFlame
 render camera palette vibrancy gamma plottables = 
@@ -32,29 +55,38 @@ render camera palette vibrancy gamma plottables =
       height = sizeHeight . cameraSize $ camera
       plot = plotWithPalette palette
       gammaCorrect = gammaColor vibrancy gamma 
-      maxIx = width * height
+      maxIx = width * height * nFloatChannels
   in
-    let (amax :: Double, colors :: Array Int Color) = runST $ do
+    let (amax :: FloatChannel, colors :: SV.Vector FloatChannel) = runST $ do
                            -- accumulate color values at points that map to each pixel
-                           -- when I switch to Repa, seems like the V (boxed vectors) representation is appropriate 
-                           colors <- newArray (0, maxIx) (Color 0 0 0 0) :: ST s (STArray s Int Coord)
+                           colors <- MV.new (maxIx - 1) :: ST s (MV.MVector s FloatChannel)
+                           --colors <- newArray (0, maxIx) 0 :: ST s (STUArray s Int FloatChannel)
                            -- need to find the maximum alpha to use for scaling all other alpha values
                            amax <- newSTRef floatChannelMin
                            forM_ plottables (\(Plottable point colorVal) -> do
                              let ix = mapping point
+                             -- take out this bounds check once it's working
                              when (0 <= ix && ix <= maxIx) $ do 
-                               color <- readArray colors ix
+                               color <- readColor colors ix
                                let ncolor@(Color r g b a) = plot colorVal color
                                acc <- readSTRef amax
                                when (a > acc) $ writeSTRef amax a
-                               writeArray colors ix ncolor)
+                               writeColor colors ix ncolor)
                            amax' <- readSTRef amax
-                           colors' <- Unsafe.unsafeFreeze colors
-                           -- does this make a copy on return now that I'm not using runSTArray?
+                           colorMap width height (scaleColor amax' . gammaCorrect amax') colors
+                           colors' <- SV.freeze colors
                            return (amax', colors')
                      
+        -- switch to Repa here?, seems like the U (unboxed vectors) representation is appropriate 
         -- scale logarithmically, apply gamma correction, and write out a pixel for each summed color in the histogram
         -- switch to Repa to get automatic parallelization here
-        pixels = fmap (scaleColor amax . gammaCorrect amax) colors 
+        --pixels = fmap (scaleColor amax . gammaCorrect amax) colors 
+        pixels = colors
     in PixelFlame width height pixels
 
+-- ditch this imperative nonsense after Repa switch
+colorMap width height f vec = do
+  forM_ [0,nFloatChannels..nFloatChannels*width*height-1] (\ix -> do
+    color <- readColor vec ix
+    writeColor vec ix (f color))
+  return ()

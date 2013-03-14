@@ -3,12 +3,16 @@ module FractalFlame.GLDisplay (
   ) where
   
 import Data.Array
+import qualified Data.Array.Unsafe as Unsafe
+import qualified Data.Vector.Storable as SV
+import qualified Data.Vector.Storable.Mutable as MV
 import qualified Foreign
 import GHC.Float
-import System.Exit (exitWith, ExitCode(ExitSuccess))
 import Graphics.UI.GLUT
+import System.Exit (exitWith, ExitCode(ExitSuccess))
 
 import qualified FractalFlame.Flame as Flame
+import qualified FractalFlame.Histogram as Histogram
 
 type Image = PixelData (Color3 GLfloat)
 
@@ -23,10 +27,9 @@ pixelRep :: Flame.Color -> Color3 GLfloat
 pixelRep (Flame.Color r g b a) = Color3 (realToFrac r) (realToFrac g) (realToFrac b)
 
 makeImage :: Flame.PixelFlame -> IO Image
-makeImage flame =
-  -- this is pretty inefficient... must be some way to go from my array to a "foreign" array
-  fmap (PixelData RGB Float) $ Foreign.newArray [pixelRep pixel | pixel <- elems $ Flame.pixels flame]
-
+makeImage flame = do
+  fmap (PixelData RGB Float) . Foreign.newArray . map pixelRep $ Flame.flame2Colors flame
+  
 display :: Size -> Image -> DisplayCallback
 display size pixelData = do
   clear [ColorBuffer]

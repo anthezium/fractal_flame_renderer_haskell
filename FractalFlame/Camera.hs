@@ -25,7 +25,7 @@ project camera@(Camera size@(Size width height)
         point@(Point x y) =
   let (wshift, hshift, dx, dy) = cameraDimensions camera
       (Point x' y') = rotateBy center rotate point
-      px = round ((x' - cx) / dx * wshift + wshift) :: Int 
+      px = round ((x' - cx) / dx * wshift + wshift) :: Int
       py = round ((y' - cy) / dy * hshift + hshift) :: Int
   in 
     Point px py

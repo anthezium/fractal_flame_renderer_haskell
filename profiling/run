@@ -8,7 +8,7 @@ VIEW=gv
 
 runhaskell Setup configure --enable-executable-profiling --user --ghc-options='-auto'
 runhaskell Setup.lhs build
-dist/build/${PROG}/${PROG} +RTS -sstderr -p -hc
+dist/build/${PROG}/${PROG} +RTS -sstderr -p -hc -s${PROG}.summary
 hp2ps ${PROG}.hp
 #${VIEW} ${PROG}.ps
 #cat ${PROG}.summary
