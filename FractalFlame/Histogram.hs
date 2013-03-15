@@ -74,7 +74,7 @@ render camera palette vibrancy gamma plottables =
                                writeColor colors ix ncolor)
                            amax' <- readSTRef amax
                            colorMap width height (scaleColor amax' . gammaCorrect amax') colors
-                           colors' <- SV.freeze colors
+                           colors' <- SV.unsafeFreeze colors
                            return (amax', colors')
                      
         -- switch to Repa here?, seems like the U (unboxed vectors) representation is appropriate 
@@ -84,9 +84,21 @@ render camera palette vibrancy gamma plottables =
         pixels = colors
     in PixelFlame width height pixels
 
+colorVecEach width height f vec = do
+  let g = f vec
+  forM_ [0,nFloatChannels..nFloatChannels*width*height-1] $ flip (>>=) g . return
+
 -- ditch this imperative nonsense after Repa switch
+{-
 colorMap width height f vec = do
-  forM_ [0,nFloatChannels..nFloatChannels*width*height-1] (\ix -> do
+  forM_ [0,nFloatChannels..nFloatChannels*width*height-1] $ (\ix -> do
     color <- readColor vec ix
     writeColor vec ix (f color))
-  return ()
+-}
+
+colorMap width height f vec = 
+  let f' vec ix = do
+                    color <- readColor vec ix
+                    writeColor vec ix (f color)
+  in
+    colorVecEach width height f' vec

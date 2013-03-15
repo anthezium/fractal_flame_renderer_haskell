@@ -3,9 +3,6 @@ module FractalFlame.GLDisplay (
   ) where
   
 import Data.Array
-import qualified Data.Array.Unsafe as Unsafe
-import qualified Data.Vector.Storable as SV
-import qualified Data.Vector.Storable.Mutable as MV
 import qualified Foreign
 import GHC.Float
 import Graphics.UI.GLUT
