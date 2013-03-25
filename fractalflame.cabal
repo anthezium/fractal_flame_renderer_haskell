@@ -31,5 +31,7 @@ executable demo
   extensions:
     Arrows, 
     BangPatterns,
+    DisambiguateRecordFields,
+    NamedFieldPuns,
     NoMonomorphismRestriction,
     ScopedTypeVariables

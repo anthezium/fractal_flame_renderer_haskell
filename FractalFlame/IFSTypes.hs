@@ -33,7 +33,7 @@ data Size = Size {
 type Transform = CartesianPoint -> CartesianPoint
 
 data Variation = Variation {
-    coefficient :: Coord
+    weight :: Coord
   , transform :: Transform
   }
 

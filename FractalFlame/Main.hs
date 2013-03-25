@@ -62,10 +62,10 @@ demoVariations = []
 width = 400
 height = 400
 camera = Camera { cameraSize = (Size width height)
-                , cameraCenter = (Point 0.5 0.5)
+                , cameraCenter = (Point 0.1 0.17)
                 , cameraScale = 200
                 , cameraRotate = 0
-                , cameraZoom = 1.9
+                , cameraZoom = 1.9*4
                 }
 
 iterationsToDiscard = 20
