@@ -44,7 +44,18 @@ genFirstColorVal s =
   in
     cv
 
+seeds :: StdGen -> [StdGen]
+seeds s =
+  let (s', s'') = split s
+  in
+    (s':seeds s'')
+    -- would (s':seeds s') also be correct?
+
 -- random variables for use in variations
+variationGenerators s = 
+  let (psiSeed:omegaSeed:lambdaSeed:s':_) = seeds s
+  in  
+    ([psi psiSeed, omega omegaSeed, lambda lambdaSeed]:variationGenerators s')
 
 -- random number [0,pi]
 psi :: StdGen -> [Coord]

@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad
 import Data.Array
+import qualified Data.HashMap.Strict as HMS
 import qualified Data.Vector.Storable as SV
 import Test.QuickCheck
 import Test.QuickCheck.Gen
@@ -17,6 +18,7 @@ import FractalFlame.IFSTypes
 import FractalFlame.LinearTransformation
 import FractalFlame.Palette
 import FractalFlame.ParseFlam3
+import FractalFlame.Variation
 
 -- Most of the stuff in this module is temporary.  As the renderer moves closer to being able to render flam3s as is,
 -- the hardcoded values for xforms, the camera, etc. will be replaced by "parse flam3, render as it specifies, display"
@@ -29,7 +31,7 @@ initDemoPalette = do
 
 paramsToBaseTransforms =
     map (\(params, colorVal, weight) -> 
-      (BaseTransform (Just $ linearTransformation params) Nothing colorVal weight))
+      (BaseTransform (Just params) Nothing colorVal weight))
 
 blahBaseTransforms :: [BaseTransform]
 blahBaseTransforms = 
@@ -55,15 +57,52 @@ sierpinskiBaseTransforms =
                ]
   in paramsToBaseTransforms params
 
+demoLinear :: Variation
+demoLinear = Variation {
+    variationWeight = 1
+  , variationVParams = HMS.empty
+  , variationTransform = linear
+  }
+
+demoSpiral :: Variation
+demoSpiral = Variation {
+    variationWeight = 1
+  , variationVParams = HMS.empty
+  , variationTransform = spiral
+  }
+
+demoSinusoidal :: Variation
+demoSinusoidal = Variation {
+    variationWeight = 1
+  , variationVParams = HMS.empty
+  , variationTransform = sinusoidal
+  }
+
+demoSwirl :: Variation
+demoSwirl = Variation {
+    variationWeight = 1
+  , variationVParams = HMS.empty
+  , variationTransform = swirl
+  }
+
+demoDisc :: Variation
+demoDisc = Variation {
+    variationWeight = 1
+  , variationVParams = HMS.empty
+  , variationTransform = disc
+  }
+
+
 demoVariations :: [Variation]
-demoVariations = []
+demoVariations = [demoSwirl]
+--demoVariations = []
 
 -- camera
-width = 400
-height = 400
+width = 200
+height = 200
 camera = Camera { cameraSize = (Size width height)
-                , cameraCenter = (Point 0.5 0.5)
-                , cameraScale = 200
+                , cameraCenter = (Point (-0.2) 0.2)
+                , cameraScale = 100
                 , cameraRotate = 0
                 , cameraZoom = 1.9
                 }
@@ -84,19 +123,22 @@ main = do
       firstColorVal = genFirstColorVal s3
       rangeCheck = inCameraCheck camera
       baseTransforms = {-# SCC "baseTransforms" #-} sampleBaseTransforms s2 sierpinskiBaseTransforms
+      (s5, s6) = split s4
+      generators = variationGenerators s5
       variations = demoVariations
       final = Nothing
       finalColorVal = Nothing
       -- set up infinite list of plottables
       plottables = take samples $
                     ifs iterationsToDiscard
-                       rangeCheck
-                       firstPoint
-                       firstColorVal
-                       baseTransforms
-                       variations
-                       final
-                       finalColorVal
+                        rangeCheck
+                        firstPoint
+                        firstColorVal
+                        baseTransforms
+                        generators
+                        variations
+                        final
+                        finalColorVal
       -- render pixels from plottables
       flame = render camera
                      demoPalette 

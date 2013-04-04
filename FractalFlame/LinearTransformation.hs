@@ -3,8 +3,8 @@ module FractalFlame.LinearTransformation where
 import FractalFlame.IFSTypes
 
 linearTransformation :: LinearParams -> Transform
-linearTransformation (LinearParams xx xy xc yx yy yc) = 
+linearTransformation (LinearParams a b c d e f) = 
   (\(Point x y) ->
-    Point (xx * x + xy * y + xc)
-          (yx * x + yy * y + yc))
+    Point (a * x + b * y + c)
+          (d * x + e * y + f))
 

@@ -1,5 +1,6 @@
 module FractalFlame.IFSTypes where
 
+import Data.HashMap.Strict (HashMap)
 import Data.Monoid
 import Graphics.UI.GLUT (GLdouble)
 
@@ -8,8 +9,8 @@ import FractalFlame.Flame
 type Coord = GLdouble 
 
 data Point a = Point {
-    x :: a
-  , y :: a
+    pointX :: a
+  , pointY :: a
   } deriving (Show)
 
 instance Functor Point where
@@ -31,14 +32,57 @@ data Size = Size {
   }
 
 type Transform = CartesianPoint -> CartesianPoint
+type Generator = [[Coord]]
+
+-- should I worry about the number of fields w.r.t. efficiency?  will building all those thunks take extra time or use a significant amount of extra memory?  VarPs are only bound in the scope of runVariation, so they should be garbage collected when it returns.  This should happen automatically since each new point is eagerly evaluated and that should evaluate all the thunks that are needed and let the current VarP go out of scope.
+type VParams = HashMap String Coord
+
+data VarP = VarP {
+    psis         :: [Coord]
+  , psi1         :: Coord
+  , psi2         :: Coord
+  , psi3         :: Coord
+  , psi4         :: Coord
+  , psi5         :: Coord
+  , omegas       :: [Coord]
+  , omega1       :: Coord
+  , omega2       :: Coord
+  , omega3       :: Coord
+  , omega4       :: Coord
+  , omega5       :: Coord
+  , lambdas      :: [Coord]
+  , lambda1      :: Coord
+  , lambda2      :: Coord
+  , lambda3      :: Coord
+  , lambda4      :: Coord
+  , lambda5      :: Coord
+  , linearParams :: LinearParams
+  , a            :: Coord
+  , b            :: Coord
+  , c            :: Coord
+  , d            :: Coord
+  , e            :: Coord
+  , f            :: Coord
+  , vparams      :: VParams
+  , weight       :: Coord
+  , x            :: Coord
+  , y            :: Coord
+  , r            :: Coord
+  , theta        :: Coord
+  , phi          :: Coord
+  , point        :: CartesianPoint
+  }
+
+type VTransform = VarP -> CartesianPoint
 
 data Variation = Variation {
-    weight :: Coord
-  , transform :: Transform
+    variationWeight :: Coord
+  , variationVParams :: VParams
+  , variationTransform :: VTransform
   }
 
 scalePoint :: Num a => a -> Point a -> Point a
-scalePoint coeff (Point x y) = (Point (x * coeff) (y * coeff)) 
+scalePoint coeff = fmap (* coeff)
 
 {- 2-dimensional linear transformation matrix constants -}
 data LinearParams = LinearParams {
@@ -52,8 +96,8 @@ data LinearParams = LinearParams {
 
 {- base transforms (as opposed to variations) -}
 data BaseTransform = BaseTransform {
-    basePre  :: Maybe Transform -- transform before variations are run
-  , basePost :: Maybe Transform -- transform after variations are run
+    basePreParams  :: Maybe LinearParams -- params for transform before variations are run
+  , basePostParams :: Maybe LinearParams -- params for transform after variations are run
   , baseColorVal :: Coord -- color associated with these transforms
   , baseWeight :: Coord -- likelihood of selection by IFS, value from 0 to 1
   }

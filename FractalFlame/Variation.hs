@@ -3,59 +3,20 @@ module FractalFlame.Variation where
 import Data.HashMap.Strict (HashMap, (!))
 import Data.Monoid
 
-import FractalFlame.IFSTypes hiding (x, y)
+import FractalFlame.IFSTypes
 
 -- exported
--- should I worry about the number of fields w.r.t. efficiency?  will building all those thunks take extra time or use a significant amount of extra memory?  VarPs are only bound in the scope of runVariation, so they should be garbage collected when it returns.  This should happen automatically since each new point is eagerly evaluated and that should evaluate all the thunks that are needed and let the current VarP go out of scope.
-data VarP = VarP {
-    psis         :: [Coord]
-  , psi1         :: Coord
-  , psi2         :: Coord
-  , psi3         :: Coord
-  , psi4         :: Coord
-  , psi5         :: Coord
-  , omegas       :: [Coord]
-  , omega1       :: Coord
-  , omega2       :: Coord
-  , omega3       :: Coord
-  , omega4       :: Coord
-  , omega5       :: Coord
-  , lambdas      :: [Coord]
-  , lambda1      :: Coord
-  , lambda2      :: Coord
-  , lambda3      :: Coord
-  , lambda4      :: Coord
-  , lambda5      :: Coord
-  , linearParams :: LinearParams
-  , a            :: Coord
-  , b            :: Coord
-  , c            :: Coord
-  , d            :: Coord
-  , e            :: Coord
-  , f            :: Coord
-  , vparams      :: HashMap String Coord
-  , weight       :: Coord
-  , x            :: Coord
-  , y            :: Coord
-  , r            :: Coord
-  , theta        :: Coord
-  , phi          :: Coord
-  , point        :: CartesianPoint
-  }
-
-type VParams = HashMap String Coord
-
 -- better way than typing all of this stuff?  template haskell?
-runVariation :: [Coord] -> [Coord] -> [Coord] -> LinearParams -> VParams -> Coord -> (VarP -> CartesianPoint) -> CartesianPoint -> CartesianPoint
-runVariation psis omegas lambdas linearParams@(LinearParams a b c d e f) vparams weight var point@(Point x y) =
+runVariation :: Variation -> Generator -> LinearParams -> CartesianPoint -> CartesianPoint
+runVariation (Variation weight vparams vtransform) generator@[psis, omegas, lambdas] linearParams@(LinearParams a b c d e f) point@(Point x y) = 
   let (psi1:psi2:psi3:psi4:psi5:psis') = psis
       (omega1:omega2:omega3:omega4:omega5:omegas') = omegas 
       (lambda1:lambda2:lambda3:lambda4:lambda5:lambdas') = lambdas 
-      (x, y, r, theta, phi, point) = pointAttrs point
+      (x, y, r, theta, phi, point') = pointAttrs point
       -- how can I include gaussianR in this without taking the preceding psis when I don't need to?
   in
     -- is there a way to avoid typing each name twice?
-    var $ VarP {
+    vtransform $ VarP {
          psis = psis
       ,  psi1 = psi1
       ,  psi2 = psi2
@@ -88,16 +49,22 @@ runVariation psis omegas lambdas linearParams@(LinearParams a b c d e f) vparams
       ,  r = r
       ,  theta = theta
       ,  phi = phi
-      ,  point = point
+      ,  point = point'
       }
 
-
-applyVariations :: [Variation] -> CartesianPoint -> CartesianPoint
-applyVariations []   point = point
-applyVariations vars point =
-  mconcat $ map (\(Variation weight transform)-> 
-    scalePoint weight $ transform point) 
-                vars
+applyVariations :: [Generator] -> LinearParams -> [Variation] -> CartesianPoint -> ([Generator], CartesianPoint)
+applyVariations generators _            []   point = (generators, point)
+applyVariations generators linearParams vars point =
+  let genAndVars  = zip generators vars
+      generators' = drop (length vars) generators
+      totalWeight = sum $ map variationWeight vars -- to normalize weights
+      varPoint = mconcat $ map (\(generator, variation@(Variation weight _ _))-> 
+                                 let transform = runVariation variation generator linearParams
+                                 in
+                                   scalePoint (weight / totalWeight) $ transform point) 
+                               genAndVars
+  in
+    (generators', varPoint)
 
 -- helpers
 pointAttrs point@(Point x y) =
