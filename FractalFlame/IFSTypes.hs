@@ -3,6 +3,7 @@ module FractalFlame.IFSTypes where
 import Data.HashMap.Strict (HashMap)
 import Data.Monoid
 import Graphics.UI.GLUT (GLdouble)
+import System.Random
 
 import FractalFlame.Flame
 
@@ -32,30 +33,28 @@ data Size = Size {
   }
 
 type Transform = CartesianPoint -> CartesianPoint
-type Generator = [[Coord]]
+type Generator a = StdGen -> (a, StdGen)
 
 -- should I worry about the number of fields w.r.t. efficiency?  will building all those thunks take extra time or use a significant amount of extra memory?  VarPs are only bound in the scope of runVariation, so they should be garbage collected when it returns.  This should happen automatically since each new point is eagerly evaluated and that should evaluate all the thunks that are needed and let the current VarP go out of scope.
 type VParams = HashMap String Coord
 
 data VarP = VarP {
-    psis         :: [Coord]
-  , psi1         :: Coord
+    psi1         :: Coord
   , psi2         :: Coord
   , psi3         :: Coord
   , psi4         :: Coord
   , psi5         :: Coord
-  , omegas       :: [Coord]
   , omega1       :: Coord
   , omega2       :: Coord
   , omega3       :: Coord
   , omega4       :: Coord
   , omega5       :: Coord
-  , lambdas      :: [Coord]
   , lambda1      :: Coord
   , lambda2      :: Coord
   , lambda3      :: Coord
   , lambda4      :: Coord
   , lambda5      :: Coord
+  , gaussianR    :: Coord
   , linearParams :: LinearParams
   , a            :: Coord
   , b            :: Coord

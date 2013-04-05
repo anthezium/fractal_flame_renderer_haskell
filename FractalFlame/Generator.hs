@@ -7,42 +7,39 @@ import Test.QuickCheck.Gen
 
 import FractalFlame.IFSTypes
 
-infiniteListGen :: StdGen -> Gen a -> [a]
-infiniteListGen s g =
-  let gen = mapM (\_ -> g) [1..]
+loopGen :: Gen a -> Generator a
+loopGen g = (\s ->
+  let (s', s'') = split s
   in
-    {-# SCC "infiniteListGen" #-} unGen gen s 1
+    (unGen g s' 1, s''))
 
-infiniteSample :: StdGen -> [a] -> [a]
-infiniteSample s items = 
-  let gens = map (\x -> return x) items
-  in 
-    infiniteListGen s $ oneof gens
+loopSampler :: [a] -> Generator a
+loopSampler items =
+  let gens = map return items
+  in
+    loopGen $ oneof gens
 
-weightedInfiniteSample :: StdGen -> [(Coord, a)] -> [a]
-weightedInfiniteSample s freqItems =
-  let n = length freqItems
+weightedLoopSampler :: [(Coord, a)] -> Generator a
+weightedLoopSampler freqItems =
       -- no need to normalize, frequency does it for us.  multiply to get some resolution before rounding.
-      freqGens = map (\(freq, item) -> ((round $ freq * 10000), return item)) freqItems
-  in infiniteListGen s $ frequency freqGens
+  let freqGens = map (\(freq, item) -> ((round $ freq * 10000), return item)) freqItems
+  in
+    loopGen $ frequency freqGens
 
--- infinite list that samples a list of BaseTransforms based on their weights
-sampleBaseTransforms :: StdGen -> [BaseTransform] -> [BaseTransform]
-sampleBaseTransforms s = weightedInfiniteSample s . map (\xform -> (baseWeight xform, xform))
+-- returns a function that samples a list of BaseTransforms based on their weights
+baseTransformSampler :: [BaseTransform] -> Generator BaseTransform
+baseTransformSampler = weightedLoopSampler . map (\xform -> (baseWeight xform, xform))
 
 -- random variables for initialization
-genFirstPoint :: StdGen -> CartesianPoint
+genFirstPoint :: Generator CartesianPoint
 genFirstPoint s =
-  let (x, s1) = randomR (-1, 1) s :: (Coord, StdGen) -- why won't it infer this?
-      (y, _) = randomR (-1, 1) s1
+  let (x, s')  = randomR (-1, 1) s  :: (Coord, StdGen) -- why won't it infer this?
+      (y, s'') = randomR (-1, 1) s' :: (Coord, StdGen)
   in
-    Point x y
+    (Point x y, s'')
 
-genFirstColorVal :: StdGen -> Coord
-genFirstColorVal s =
-  let (cv, _) = randomR (0, 1) s
-  in
-    cv
+genFirstColorVal :: Generator Coord
+genFirstColorVal = randomR (0, 1)
 
 seeds :: StdGen -> [StdGen]
 seeds s =
@@ -51,20 +48,14 @@ seeds s =
     (s':seeds s'')
     -- would (s':seeds s') also be correct?
 
--- random variables for use in variations
-variationGenerators s = 
-  let (psiSeed:omegaSeed:lambdaSeed:s':_) = seeds s
-  in  
-    ([psi psiSeed, omega omegaSeed, lambda lambdaSeed]:variationGenerators s')
-
 -- random number [0,pi]
-psi :: StdGen -> [Coord]
-psi s = randomRs (0, pi) s
+psi :: Generator Coord
+psi = randomR (0, pi)
 
 -- random number 0 or pi
-omega :: StdGen -> [Coord]
-omega s = infiniteListGen s $ oneof [return 0, return pi]
+omega :: Generator Coord
+omega = loopGen $ oneof [return 0, return pi]
 
 -- random number -1 or 1
-lambda :: StdGen -> [Coord]
-lambda s = infiniteListGen s $ oneof [return (-1), return 1]
+lambda :: Generator Coord
+lambda = loopGen $ oneof [return (-1), return 1]

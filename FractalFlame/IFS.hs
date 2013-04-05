@@ -1,5 +1,7 @@
 module FractalFlame.IFS where
 
+import System.Random
+
 import FractalFlame.IFSTypes
 import FractalFlame.LinearTransformation
 import FractalFlame.Variation
@@ -10,8 +12,8 @@ ifs :: Int
     -> (CartesianPoint -> Bool)
     -> CartesianPoint
     -> Coord
-    -> [BaseTransform]
-    -> [Generator]
+    -> StdGen
+    -> Generator BaseTransform
     -> [Variation]
     -> Maybe Transform
     -> Maybe Coord
@@ -20,8 +22,8 @@ ifs iterationsToDiscard
     rangeCheck 
     firstPoint 
     firstColorVal
-    baseTransforms 
-    generators
+    firstSeed
+    getBaseTransform
     variations 
     final 
     finalColorVal = 
@@ -31,9 +33,9 @@ ifs iterationsToDiscard
       -- the list is infinite)
       helper !lastPoint 
              !lastColorVal
-             (xform:baseTransforms')
-             generators = 
-        let preParams = basePreParams xform
+             seed = 
+        let (xform, seed') = getBaseTransform seed
+            preParams = basePreParams xform
             postParams = basePostParams xform
             [pre, post] = map (>>= Just . linearTransformation) [preParams, postParams]
             colorVal = baseColorVal xform
@@ -41,7 +43,7 @@ ifs iterationsToDiscard
             prePoint = maybe lastPoint ($ lastPoint) pre
             -- apply variations if variations and a pre-transformation were specified
             -- (should this work without a pre-transformation if no variations requiring linear parameters are specified?)
-            (generators', varsPoint) = maybe (generators, prePoint) (\linearParams -> applyVariations generators linearParams variations prePoint) preParams
+            (varsPoint, seed'') = maybe (prePoint, seed') (\linearParams -> applyVariations linearParams variations seed' prePoint) preParams
             -- apply affine post-transformation if specified
             postPoint = maybe varsPoint ($ varsPoint) post
             -- blend last and new color indices
@@ -53,13 +55,12 @@ ifs iterationsToDiscard
             this = Plottable thisPoint thisColorVal
             next = helper thisPoint 
                           thisColorVal
-                          baseTransforms'
-                          generators'
+                          seed''
         in
           (this:next)
   in
     drop iterationsToDiscard . 
     filter plottableCheck    $ helper firstPoint 
                                       firstColorVal
-                                      baseTransforms 
-                                      generators
+                                      firstSeed
+                                      

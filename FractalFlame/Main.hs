@@ -98,11 +98,11 @@ demoVariations = [demoSwirl]
 --demoVariations = []
 
 -- camera
-width = 200
-height = 200
+width = 300
+height = 300
 camera = Camera { cameraSize = (Size width height)
                 , cameraCenter = (Point (-0.2) 0.2)
-                , cameraScale = 100
+                , cameraScale = 150
                 , cameraRotate = 0
                 , cameraZoom = 1.9
                 }
@@ -117,14 +117,11 @@ main :: IO ()
 main = do
   s <- newStdGen
   demoPalette <- initDemoPalette
-  let (s1, s2) = split s
-      firstPoint = genFirstPoint s1
-      (s3, s4) = split s2
-      firstColorVal = genFirstColorVal s3
+  let (firstPoint, s') = genFirstPoint s
+      (firstColorVal, s'') = genFirstColorVal s'
+      firstSeed = s''
       rangeCheck = inCameraCheck camera
-      baseTransforms = {-# SCC "baseTransforms" #-} sampleBaseTransforms s2 sierpinskiBaseTransforms
-      (s5, s6) = split s4
-      generators = variationGenerators s5
+      getBaseTransform = baseTransformSampler sierpinskiBaseTransforms
       variations = demoVariations
       final = Nothing
       finalColorVal = Nothing
@@ -134,8 +131,8 @@ main = do
                         rangeCheck
                         firstPoint
                         firstColorVal
-                        baseTransforms
-                        generators
+                        firstSeed
+                        getBaseTransform
                         variations
                         final
                         finalColorVal

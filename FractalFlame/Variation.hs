@@ -1,70 +1,79 @@
 module FractalFlame.Variation where
 
+import Control.Applicative
 import Data.HashMap.Strict (HashMap, (!))
 import Data.Monoid
+import System.Random
 
+import FractalFlame.Generator
 import FractalFlame.IFSTypes
 
 -- exported
 -- better way than typing all of this stuff?  template haskell?
-runVariation :: Variation -> Generator -> LinearParams -> CartesianPoint -> CartesianPoint
-runVariation (Variation weight vparams vtransform) generator@[psis, omegas, lambdas] linearParams@(LinearParams a b c d e f) point@(Point x y) = 
-  let (psi1:psi2:psi3:psi4:psi5:psis') = psis
-      (omega1:omega2:omega3:omega4:omega5:omegas') = omegas 
-      (lambda1:lambda2:lambda3:lambda4:lambda5:lambdas') = lambdas 
+runVariation :: Variation -> LinearParams -> StdGen -> CartesianPoint -> (CartesianPoint, StdGen)
+runVariation (Variation weight vparams vtransform) linearParams@(LinearParams a b c d e f) seed point@(Point x y) = 
+  let (varSeed:gSeed:seed':_) = seeds seed
+      fZList = ZipList $ concat . map (replicate 5 . (fst .)) $ [psi, omega, lambda]
+      vsZList = ZipList $ seeds varSeed
+      -- switch this to some loop that uses the returned seeds instead of discarding them to reduce the constant factor
+      -- of random numbers generated
+      [psi1, psi2, psi3, psi4, psi5, 
+       omega1, omega2, omega3, omega4, omega5, 
+       lambda1, lambda2, lambda3, lambda4, lambda5] = getZipList $ fZList <*> vsZList
+      gZList = ZipList $ replicate 4 (fst . psi)
+      gsZList = ZipList $ seeds gSeed
+      gaussianR = gaussianRandom $ getZipList $ gZList <*> gsZList
       (x, y, r, theta, phi, point') = pointAttrs point
-      -- how can I include gaussianR in this without taking the preceding psis when I don't need to?
-  in
-    -- is there a way to avoid typing each name twice?
-    vtransform $ VarP {
-         psis = psis
-      ,  psi1 = psi1
-      ,  psi2 = psi2
-      ,  psi3 = psi3
-      ,  psi4 = psi4
-      ,  psi5 = psi5
-      ,  omegas = omegas
-      ,  omega1 = omega1
-      ,  omega2 = omega2
-      ,  omega3 = omega3
-      ,  omega4 = omega4
-      ,  omega5 = omega5
-      ,  lambdas = lambdas
-      ,  lambda1 = lambda1
-      ,  lambda2 = lambda2
-      ,  lambda3 = lambda3
-      ,  lambda4 = lambda4
-      ,  lambda5 = lambda5
-      ,  linearParams = linearParams
-      ,  a = a
-      ,  b = b
-      ,  c = c
-      ,  d = d
-      ,  e = e
-      ,  f = f
-      ,  vparams = vparams
-      ,  weight = weight
-      ,  x = x
-      ,  y = y
-      ,  r = r
-      ,  theta = theta
-      ,  phi = phi
-      ,  point = point'
-      }
+      -- is there a way to avoid typing each name twice?
+      point'' = vtransform $ VarP {
+           psi1 = psi1
+        ,  psi2 = psi2
+        ,  psi3 = psi3
+        ,  psi4 = psi4
+        ,  psi5 = psi5
+        ,  omega1 = omega1
+        ,  omega2 = omega2
+        ,  omega3 = omega3
+        ,  omega4 = omega4
+        ,  omega5 = omega5
+        ,  lambda1 = lambda1
+        ,  lambda2 = lambda2
+        ,  lambda3 = lambda3
+        ,  lambda4 = lambda4
+        ,  lambda5 = lambda5
+        ,  gaussianR = gaussianR
+        ,  linearParams = linearParams
+        ,  a = a
+        ,  b = b
+        ,  c = c
+        ,  d = d
+        ,  e = e
+        ,  f = f
+        ,  vparams = vparams
+        ,  weight = weight
+        ,  x = x
+        ,  y = y
+        ,  r = r
+        ,  theta = theta
+        ,  phi = phi
+        ,  point = point'
+        }
+    in
+      (point'', seed')
 
-applyVariations :: [Generator] -> LinearParams -> [Variation] -> CartesianPoint -> ([Generator], CartesianPoint)
-applyVariations generators _            []   point = (generators, point)
-applyVariations generators linearParams vars point =
-  let genAndVars  = zip generators vars
-      generators' = drop (length vars) generators
+applyVariations :: LinearParams -> [Variation] -> StdGen -> CartesianPoint -> (CartesianPoint, StdGen)
+applyVariations _            []   seed point = (point, seed)
+applyVariations linearParams vars seed point =
+  let (seed', seed'') = split seed
+      seedVars  = zip (seeds seed') vars
       totalWeight = sum $ map variationWeight vars -- to normalize weights
-      varPoint = mconcat $ map (\(generator, variation@(Variation weight _ _))-> 
-                                 let transform = runVariation variation generator linearParams
-                                 in
-                                   scalePoint (weight / totalWeight) $ transform point) 
-                               genAndVars
+      point' = mconcat $ map (\(s, variation@(Variation weight _ _))-> 
+                               let transform = runVariation variation linearParams s
+                               in
+                                 scalePoint (weight / totalWeight) . fst . transform $ point) 
+                             seedVars
   in
-    (generators', varPoint)
+    (point', seed'')
 
 -- helpers
 pointAttrs point@(Point x y) =
@@ -98,11 +107,8 @@ trunc = fromIntegral . truncate
 
 flr = fromIntegral . floor
 
-gaussianR psis = 
-  let gr = (sum $ take 4 psis) - 2
-      psis' = drop 4 psis
-  in
-    (gr, psis')
+gaussianRandom psis = 
+  (sum $ take 4 psis) - 2
 
 -- look at flam3-render to see if this should be truncate
 (%) a b = fromIntegral $ (round a) `mod` (round b)
@@ -280,19 +286,17 @@ juliascope (VarP {psi1, lambda1, vparams, phi, r}) =
   in
     fmap (* m) $ Point (cos t) (sin t)
 
-gaussian (VarP {psis}) =
-  let (gauss, (psi5:_)) = gaussianR psis 
-      z = 2 * pi * psi5
+gaussian (VarP {psi1, gaussianR}) =
+  let z = 2 * pi * psi1
   in
-    fmap (* gauss) $ Point (cos z) (sin z)
+    fmap (* gaussianR) $ Point (cos z) (sin z)
 
 -- ask spot about 1) is ra the same as rA on the wiki? 2) why doesn't the code on the wiki divide the final X and Y by W?
 -- following spec in the paper for now
-radialblur (VarP {psis, vparams, weight, x, y, r, phi}) =
+radialblur (VarP {gaussianR, vparams, weight, x, y, r, phi}) =
   let [angle] = getVps vparams ["radialblur_angle"]
       p = angle * pi / 2
-      (gauss, _) = gaussianR psis
-      t1 = weight * gauss
+      t1 = weight * gaussianR
       t2 = phi + t1 * sin p
       t3 = t1 * cos p - 1
   in
@@ -359,9 +363,8 @@ secant2 (VarP {weight, r, x}) =
   in
     Point x y'
 
-twintrain (VarP {psis, weight, r, x}) =
-  let (psi:_) = psis
-      z = psi * r * weight
+twintrain (VarP {psi1, weight, r, x}) =
+  let z = psi1 * r * weight
       t = (log $ (sin z)^2 + cos z) / (log 10)
   in
     fmap (* x) $ Point t (t - pi * sin z)
