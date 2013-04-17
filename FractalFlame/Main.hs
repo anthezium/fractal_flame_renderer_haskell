@@ -9,15 +9,20 @@ import Test.QuickCheck.Gen
 import System.Random
 
 import FractalFlame.Camera
-import FractalFlame.Flame
+import FractalFlame.Color
+import FractalFlame.Flam3.Parse
+import FractalFlame.Flam3.Types.Flame
+import FractalFlame.Flam3.Types.Xform
 import FractalFlame.Generator
 import FractalFlame.GLDisplay
 import FractalFlame.Histogram
 import FractalFlame.IFS
-import FractalFlame.IFSTypes
 import FractalFlame.LinearTransformation
 import FractalFlame.Palette
-import FractalFlame.ParseFlam3
+import FractalFlame.Point.Types.Point
+import FractalFlame.Types.LinearParams
+import FractalFlame.Types.PixelFlame
+import FractalFlame.Types.Size
 import FractalFlame.Variation
 
 -- Most of the stuff in this module is temporary.  As the renderer moves closer to being able to render flam3s as is,
@@ -29,12 +34,19 @@ initDemoPalette = do
   let fcs = colors flam3
   return $ buildPalette fcs
 
-paramsToBaseTransforms =
-    map (\(params, colorVal, weight) -> 
-      (BaseTransform (Just params) Nothing colorVal weight))
+paramsToXforms =
+    map (\(params, colorIx, weight) -> 
+      Xform { preParams = (Just params) 
+            , postParams = Nothing 
+            , colorIx = colorIx
+            , weight = weight
+            , symmetry = 0
+            , variations = []
+            , vparams = HMS.empty
+            })
 
-blahBaseTransforms :: [BaseTransform]
-blahBaseTransforms = 
+blahXforms :: [Xform]
+blahXforms = 
   let params = [ ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.0 ), 0/5, 1)
                , ((LinearParams   0.5   0.0   0.5   0.0   0.5    0.0 ), 1/5, 1)
                , ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.5 ), 2/5, 1)
@@ -48,68 +60,76 @@ blahBaseTransforms =
                , ((LinearParams   0.5   0.0   0.5   0.0 (-0.5)   0.0 ), 1/5, 1)
                , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5) (-0.5)), 0/5, 1)
                ]
-  in paramsToBaseTransforms params
+  in paramsToXforms params
 
-sierpinskiBaseTransforms =
+sierpinskiXforms =
   let params = [ ((LinearParams    0.5   0.0   0.0   0.0   0.5   0.0),             0/2, 1)
                , ((LinearParams    0.5   0.0   0.25  0.0   0.5  (0.5*(sqrt 3)/2)), 1/2, 1)
                , ((LinearParams    0.5   0.0   0.5   0.0   0.5   0.0),             2/2, 1)
                ]
-  in paramsToBaseTransforms params
+  in paramsToXforms params
 
 demoLinear :: Variation
 demoLinear = Variation {
-    variationWeight = 1
-  , variationVParams = HMS.empty
-  , variationTransform = linear
+    weight = 1
+  , vParams = HMS.empty
+  , vTransform = linear
   }
 
 demoSpiral :: Variation
 demoSpiral = Variation {
-    variationWeight = 1
-  , variationVParams = HMS.empty
-  , variationTransform = spiral
+    weight = 1
+  , vParams = HMS.empty
+  , vTransform = spiral
   }
 
 demoSinusoidal :: Variation
 demoSinusoidal = Variation {
-    variationWeight = 1
-  , variationVParams = HMS.empty
-  , variationTransform = sinusoidal
+    weight = 1
+  , vParams = HMS.empty
+  , vTransform = sinusoidal
   }
 
 demoSwirl :: Variation
 demoSwirl = Variation {
-    variationWeight = 1
-  , variationVParams = HMS.empty
-  , variationTransform = swirl
+    weight = 1
+  , vParams = HMS.empty
+  , vTransform = swirl
   }
 
 demoDisc :: Variation
 demoDisc = Variation {
-    variationWeight = 1
-  , variationVParams = HMS.empty
-  , variationTransform = disc
+    weight = 1
+  , vParams = HMS.empty
+  , vTransform = disc
+  }
+
+demoPie :: Variation
+demoPie = Variation {
+    weight = 0.002
+  , vParams = HMS.fromList [("pie_slices", 5), ("pie_rotation", pi / 5), ("pie_thickness", 0.1)]
+  , vTransform = pie
   }
 
 
 demoVariations :: [Variation]
-demoVariations = [demoSwirl]
+demoVariations = [demoSwirl, demoPie]
 --demoVariations = []
 
 -- camera
-width = 300
-height = 300
-camera = Camera { cameraSize = (Size width height)
-                , cameraCenter = (Point (-0.2) 0.2)
-                , cameraScale = 150
-                , cameraRotate = 0
-                , cameraZoom = 1.9
+demoWidth = 800
+demoHeight = 800
+camera = Camera { size = (Size demoWidth demoHeight)
+                --, center = (Point (-0.2) 0.2)
+                , center = (Point 0.18 0.38)
+                , scale = 400
+                , rotate = 0
+                , zoom = 1.2
                 }
 
 iterationsToDiscard = 20
 quality = 20
-samples = width * height * quality
+samples = demoWidth * demoHeight * quality
 vibrancy = 0.6
 gamma = 3
 
@@ -118,39 +138,39 @@ main = do
   s <- newStdGen
   demoPalette <- initDemoPalette
   let (firstPoint, s') = genFirstPoint s
-      (firstColorVal, s'') = genFirstColorVal s'
+      (firstColorIx, s'') = genFirstColorIx s'
       firstSeed = s''
       rangeCheck = inCameraCheck camera
-      getBaseTransform = baseTransformSampler sierpinskiBaseTransforms
+      getXform = xformSampler sierpinskiXforms
       variations = demoVariations
       final = Nothing
-      finalColorVal = Nothing
+      finalColorIx = Nothing
       -- set up infinite list of plottables
       plottables = take samples $
                     ifs iterationsToDiscard
                         rangeCheck
                         firstPoint
-                        firstColorVal
+                        firstColorIx
                         firstSeed
-                        getBaseTransform
+                        getXform
                         variations
                         final
-                        finalColorVal
+                        finalColorIx
       -- render pixels from plottables
       flame = render camera
                      demoPalette 
                      vibrancy
                      gamma
                      plottables 
-{-
+  {-
   -- print some plottables 
   forM_ (take 100 plottables') (\plottable -> do
     putStrLn $ show plottable)
--}
-{-
+  -}
+  {-
   -- print bright pixels
-  forM_ (filter (\(Color r g b a) -> r > 0.2 && g > 0.2 && b > 0.2) . flame2Colors $ flame) (putStrLn . show)
--}
+  forM_ (filter (\(Color r g b a) -> r > 0.2 && g > 0.2 && b > 0.2) . pixelFlame2Colors $ flame) (putStrLn . show)
+  -}
   -- display pixels
   displayLoop flame
 

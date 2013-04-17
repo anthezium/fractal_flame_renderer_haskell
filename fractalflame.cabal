@@ -20,8 +20,10 @@ executable demo
   build-depends: 
     array,
     base,
+    containers,
     GLUT,
     hxt,
+    mtl,
     QuickCheck,
     random,
     regexpr,

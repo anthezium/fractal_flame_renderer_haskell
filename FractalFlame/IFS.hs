@@ -2,18 +2,24 @@ module FractalFlame.IFS where
 
 import System.Random
 
-import FractalFlame.IFSTypes
+import FractalFlame.Flam3.Types.Xform
+import FractalFlame.Generator
 import FractalFlame.LinearTransformation
+import FractalFlame.Palette
+import FractalFlame.Types.Plottable
+import FractalFlame.Types.Transform
+import FractalFlame.Point.Types.CartesianPoint
+import FractalFlame.Types.Base
 import FractalFlame.Variation
 
--- an infinite list of points and corresponding color values in the 
--- specified IFS (Iterated Function System)
+-- | an infinite list of points and corresponding color values in the 
+-- | specified IFS (Iterated Function System)
 ifs :: Int
     -> (CartesianPoint -> Bool)
     -> CartesianPoint
     -> Coord
     -> StdGen
-    -> Generator BaseTransform
+    -> Generator Xform
     -> [Variation]
     -> Maybe Transform
     -> Maybe Coord
@@ -21,24 +27,21 @@ ifs :: Int
 ifs iterationsToDiscard 
     rangeCheck 
     firstPoint 
-    firstColorVal
+    firstColorIx
     firstSeed
-    getBaseTransform
+    getXform
     variations 
     final 
-    finalColorVal = 
-  let plottableCheck = rangeCheck . plottablePoint
-      -- strictly evaluate lastPoint and lastColorVal since they only depend on preceding list items,
+    finalColorIx = 
+  let plottableCheck = rangeCheck . point
+      -- strictly evaluate lastPoint and lastColorIx since they only depend on preceding list items,
       -- for which we have no reason to keep thunks. (we need thunks for the subsequent items because
       -- the list is infinite)
       helper !lastPoint 
-             !lastColorVal
+             !lastColorIx
              seed = 
-        let (xform, seed') = getBaseTransform seed
-            preParams = basePreParams xform
-            postParams = basePostParams xform
+        let ((Xform {preParams, postParams, colorIx}), seed') = getXform seed
             [pre, post] = map (>>= Just . linearTransformation) [preParams, postParams]
-            colorVal = baseColorVal xform
             -- apply first affine transformation if specified
             prePoint = maybe lastPoint ($ lastPoint) pre
             -- apply variations if variations and a pre-transformation were specified
@@ -47,20 +50,20 @@ ifs iterationsToDiscard
             -- apply affine post-transformation if specified
             postPoint = maybe varsPoint ($ varsPoint) post
             -- blend last and new color indices
-            transColorVal = (lastColorVal + colorVal) / 2
+            transColorIx = (lastColorIx + colorIx) / 2
             -- apply final affine transformation if specified
             thisPoint = maybe postPoint ($ postPoint) final
             -- blend with final color index if specified
-            thisColorVal = maybe transColorVal (\cv -> (transColorVal + cv) / 2) finalColorVal
-            this = Plottable thisPoint thisColorVal
+            thisColorIx = maybe transColorIx (\cv -> (transColorIx + cv) / 2) finalColorIx
+            this = Plottable thisPoint thisColorIx
             next = helper thisPoint 
-                          thisColorVal
+                          thisColorIx
                           seed''
         in
           (this:next)
   in
     drop iterationsToDiscard . 
     filter plottableCheck    $ helper firstPoint 
-                                      firstColorVal
+                                      firstColorIx
                                       firstSeed
                                       

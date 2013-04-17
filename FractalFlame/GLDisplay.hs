@@ -8,24 +8,26 @@ import GHC.Float
 import Graphics.UI.GLUT
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 
-import qualified FractalFlame.Flame as Flame
-import qualified FractalFlame.Histogram as Histogram
+import qualified FractalFlame.Histogram as H
+import qualified FractalFlame.Color as C
+import qualified FractalFlame.Types.PixelFlame as PF
+import qualified FractalFlame.Types.Size as S
 
 type Image = PixelData (Color3 GLfloat)
 
-sizeRep :: Flame.PixelFlame -> Size
-sizeRep pixelFlame =
-  let w = fromIntegral $ Flame.flameWidth pixelFlame
-      h = fromIntegral $ Flame.flameHeight pixelFlame
+sizeRep :: PF.PixelFlame -> Size
+sizeRep (PF.PixelFlame {size = (S.Size width height)}) =
+  let w = fromIntegral width
+      h = fromIntegral height
   in Size w h
 
 -- convert a Pixel to a type OpenGL can display
-pixelRep :: Flame.Color -> Color3 GLfloat
-pixelRep (Flame.Color r g b a) = Color3 (realToFrac r) (realToFrac g) (realToFrac b)
+pixelRep :: C.Color -> Color3 GLfloat
+pixelRep (C.Color r g b a) = Color3 (realToFrac r) (realToFrac g) (realToFrac b)
 
-makeImage :: Flame.PixelFlame -> IO Image
-makeImage flame = do
-  fmap (PixelData RGB Float) . Foreign.newArray . map pixelRep $ Flame.flame2Colors flame
+makeImage :: PF.PixelFlame -> IO Image
+makeImage pixelFlame = do
+  fmap (PixelData RGB Float) . Foreign.newArray . map pixelRep $ PF.pixelFlame2Colors pixelFlame
   
 display :: Size -> Image -> DisplayCallback
 display size pixelData = do
@@ -49,7 +51,7 @@ keyboard :: KeyboardMouseCallback
 keyboard (Char '\27') Down _    _ = exitWith ExitSuccess
 keyboard _            _    _    _ = return ()
 
-myInit :: Flame.PixelFlame -> IO (Size, Image)
+myInit :: PF.PixelFlame -> IO (Size, Image)
 myInit pixelFlame = do
   let size = sizeRep pixelFlame
   (progName, _args) <- getArgsAndInitialize
@@ -63,7 +65,7 @@ myInit pixelFlame = do
   image <- makeImage pixelFlame
   return (size, image)
 
-displayLoop :: Flame.PixelFlame -> IO ()
+displayLoop :: PF.PixelFlame -> IO ()
 displayLoop pixelFlame = do
   (size, flameImage) <- myInit pixelFlame
   displayCallback $= display size flameImage

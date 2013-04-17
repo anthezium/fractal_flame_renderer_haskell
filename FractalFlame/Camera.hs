@@ -1,18 +1,15 @@
-module FractalFlame.Camera (
-    Camera(..)
-  , project
-  , inCameraCheck
-  ) where
+module FractalFlame.Camera 
+( Camera(..)
+, project
+, inCameraCheck
+) where
 
-import FractalFlame.IFSTypes
-
-data Camera = Camera {
-    cameraSize :: Size
-  , cameraCenter :: CartesianPoint
-  , cameraScale :: Coord
-  , cameraRotate :: Coord
-  , cameraZoom :: Coord
-  }
+import FractalFlame.Camera.Types.Camera
+import FractalFlame.Point.Types.CartesianPoint
+import FractalFlame.Point.Types.GridPoint
+import FractalFlame.Point.Types.Point
+import FractalFlame.Types.Base
+import FractalFlame.Types.Size
 
 -- transform a point in the IFS coordinate system to a
 -- point in the output image grid
