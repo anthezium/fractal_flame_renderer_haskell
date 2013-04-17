@@ -16,7 +16,7 @@
     sudo apt-get install libghc-mtl-dev libghc-random-dev libghc-stm-dev libghc-syb-dev libghc-transformers-dev libghc-utf8-string-dev libghc-x11-dev libghc-x11-xft-dev
 
   ###### You may need to install dependencies from hackage:  
-    cabal install GLUT quickcheck hxt regexpr 
+    cabal install GLUT quickcheck hxt language-haskell-extract regexpr unordered-containers 
 
   ###### Build where you checked out:  
     runghc Setup configure --user  
