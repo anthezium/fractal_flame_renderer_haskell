@@ -23,6 +23,7 @@ executable demo
     containers,
     GLUT,
     hxt,
+    language-haskell-extract,
     mtl,
     QuickCheck,
     random,
@@ -31,7 +32,6 @@ executable demo
     vector
   ghc-options: -O -rtsopts
   extensions:
-    Arrows, 
     BangPatterns,
     DisambiguateRecordFields,
     NamedFieldPuns,

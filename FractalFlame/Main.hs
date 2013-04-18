@@ -73,63 +73,72 @@ demoLinear :: Variation
 demoLinear = Variation {
     weight = 1
   , vParams = HMS.empty
-  , vTransform = linear
+  , vTransform = vt_linear
   }
 
 demoSpiral :: Variation
 demoSpiral = Variation {
     weight = 1
   , vParams = HMS.empty
-  , vTransform = spiral
+  , vTransform = vt_spiral
   }
 
 demoSinusoidal :: Variation
 demoSinusoidal = Variation {
     weight = 1
   , vParams = HMS.empty
-  , vTransform = sinusoidal
+  , vTransform = vt_sinusoidal
   }
 
 demoSwirl :: Variation
 demoSwirl = Variation {
     weight = 1
   , vParams = HMS.empty
-  , vTransform = swirl
+  , vTransform = vt_swirl
   }
 
 demoDisc :: Variation
 demoDisc = Variation {
     weight = 1
   , vParams = HMS.empty
-  , vTransform = disc
+  , vTransform = vt_disc
   }
 
 demoPie :: Variation
 demoPie = Variation {
     weight = 0.002
   , vParams = HMS.fromList [("pie_slices", 5), ("pie_rotation", pi / 5), ("pie_thickness", 0.1)]
-  , vTransform = pie
+  , vTransform = vt_pie
   }
 
 
-demoVariations :: [Variation]
-demoVariations = [demoSwirl, demoPie]
+swirlPieVariations :: [Variation]
+swirlPieVariations = [demoSwirl, demoPie]
 --demoVariations = []
 
 -- camera
-demoWidth = 800
-demoHeight = 800
-camera = Camera { size = (Size demoWidth demoHeight)
-                --, center = (Point (-0.2) 0.2)
-                , center = (Point 0.18 0.38)
-                , scale = 400
-                , rotate = 0
-                , zoom = 1.2
-                }
+bigSide = 800
+stdSide = 400
+sierpinskiSwirlPieDemoBigCamera = Camera { size = (Size bigSide bigSide)
+                                         --, center = (Point (-0.2) 0.2)
+                                         , center = (Point 0.18 0.38)
+                                         , scale = bigSide / 2
+                                         , rotate = 0
+                                         , zoom = 1.2
+                                         }
+
+sierpinskiSwirlStdCamera = Camera { size = (Size stdSide stdSide)
+                                  , center = (Point (-0.2) 0.2)
+                                  , scale = stdSide / 2
+                                  , rotate = 0
+                                  , zoom = 1.8
+                                  }
+
+sierpinskiSwirlPieBigDemo = (sierpinskiXforms, swirlPieVariations, sierpinskiSwirlPieDemoBigCamera)
+sierpinskiSwirlStdDemo = (sierpinskiXforms, [demoSwirl], sierpinskiSwirlStdCamera)
 
 iterationsToDiscard = 20
 quality = 20
-samples = demoWidth * demoHeight * quality
 vibrancy = 0.6
 gamma = 3
 
@@ -137,12 +146,13 @@ main :: IO ()
 main = do
   s <- newStdGen
   demoPalette <- initDemoPalette
-  let (firstPoint, s') = genFirstPoint s
+  let (xforms, variations, camera@(Camera {size = (Size width height)})) = sierpinskiSwirlStdDemo
+      samples = width * height * quality
+      (firstPoint, s') = genFirstPoint s
       (firstColorIx, s'') = genFirstColorIx s'
       firstSeed = s''
       rangeCheck = inCameraCheck camera
-      getXform = xformSampler sierpinskiXforms
-      variations = demoVariations
+      getXform = xformSampler xforms
       final = Nothing
       finalColorIx = Nothing
       -- set up infinite list of plottables

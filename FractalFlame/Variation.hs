@@ -39,9 +39,9 @@ runVariation (Variation weight vparams vtransform) linearParams@(LinearParams a 
       gList = replicate 4 psi
       (gaussians, seed') = generatorSequence gList gSeed
       gaussianR = gaussianRandom gaussians
-      (x, y, r, theta, phi, point') = pointAttrs point
+      (x, y, r, theta, phi) = pointAttrs point
       -- is there a way to avoid typing each name twice?
-      point'' = vtransform $ VarP {
+      point' = vtransform $ VarP {
            psi1 = psi1
         ,  psi2 = psi2
         ,  psi3 = psi3
@@ -72,10 +72,10 @@ runVariation (Variation weight vparams vtransform) linearParams@(LinearParams a 
         ,  r = r
         ,  theta = theta
         ,  phi = phi
-        ,  point = point'
+        ,  point = point
         }
     in
-      (point'', seed')
+      (point', seed')
 
 applyVariations :: LinearParams -> [Variation] -> StdGen -> CartesianPoint -> (CartesianPoint, StdGen)
 applyVariations _            []   seed point = (point, seed)

@@ -1,51 +1,84 @@
-module FractalFlame.Flam3.Parse where
+{-# LANGUAGE Arrows #-}
 
+module FractalFlame.Flam3.Parse
+( parseFlam3 
+) where
+
+import qualified Data.HashMap.Strict as HMS
+import Data.Maybe
 import Text.RegexPR
 import Text.XML.HXT.Core
 
+import FractalFlame.Color.Types.Color
 import qualified FractalFlame.Flam3.Types.Color as F3C
 import qualified FractalFlame.Flam3.Types.Flame as F3F
-import FractalFlame.Color.Types.Color
+import qualified FractalFlame.Flam3.Types.Xform as F3X
+import FractalFlame.Types.LinearParams
 import FractalFlame.Types.PixelFlame
+import qualified FractalFlame.Variation.Types.Variation as V
+import qualified FractalFlame.Variation.VTransforms as VT
 
-parseRGBAttr :: String -> Color
-parseRGBAttr s = 
-  let [r,g,b] = parse s
-  in 
-    Color (normalizeChannel r) (normalizeChannel g) (normalizeChannel b) 1
-  where parse = map read . concat . ggetbrsRegexPR "\\d+"
-        normalizeChannel channel = (fromIntegral (channel - F3C.rgbChannelMin)) / (fromIntegral (F3C.rgbChannelMax - F3C.rgbChannelMin))
+-- * Public Interface
 
--- adapted from example at http://www.haskell.org/haskellwiki/HXT/Practical/Simple2
-parseXML file = readDocument [ withValidate no
-                             , withRemoveWS yes  -- throw away formating WS
-                             ] file
-                                                           
-atTag tag = deep (isElem >>> hasName tag)
+-- | Parse a .flam3 XML file.
+parseFlam3 :: String -- ^ Path to .flam3
+           -> IO F3F.Flame
+parseFlam3 flam3 = do
+  flames <- runX (parseXML flam3 >>> getFlame)
+  -- should only be one flame element per file
+  return $ head flames 
+  
+-- * XMLTree transformer Arrows
 
-{-
-getFlame = atTag "flame" >>>
-  proc c -> do
-    
+-- | Arrow to transform flame elements in an XMLTree (in flam3 files, flame is the root element) to Flames
+getFlame = atTag "flame" >>> proc c -> do
+  colors <- listA getColors -< c
+  xforms <- listA getXforms -< c
+  returnA -< F3F.Flame { 
+                 colors = colors
+               , xforms = xforms
+               }
 
+-- | Arrow to transform xform elements in an XMLTree to Xforms
 getXforms = 
-  let requiredNames = ["weight", "color", "symmetry"]
-      optionalNames = ["coeffs", "post"]
-      variationNames = map fst variations -- or keys from variationMap
-      -- make a version of this that can make Maybes for optional names.  use that function that filters out Nothings?
-      -- look up api to see how to get a Maybe for optional params
-      -- * arrows will output an empty list when they fail.  simply leave lists that may have multiple items as lists, convert singleton or empty lists into maybes after arrow processing
-      buildNameMap = HMS.fromList $ map (\name -> (, (getAttrValue $ name -< c)))
-  in
-    atTag "xform" >>> proc c -> do
-      required <- buildNameMap requiredNames
-      optional <- buildOptNameMap optionalNames
-      variations <- buildOptNameMap variationNames --filter out Nothings since we're just making a list
-      -- look up api to see how to get a list of attr names in the tag.  then i need to filter out standard ones, build list of variations then filter them out, then put everything else in a vparams hash.  probably should redo stuff above to operate on lists of names.
-        -- if I can figure out how to do this with arrows, processAttrl will do arrow processing on the element's list of attributes. documentation at http://hackage.haskell.org/packages/archive/hxt/8.5.2/doc/html/Text-XML-HXT-Arrow-XmlArrow.html
-      -- there must be some way (w/Template Haskell?) to assign to record fields based on names in a statically defined list
--}
+  atTag "xform" >>> proc c -> do
+    weight <- getAttrValue "weight" -< c
+    color <- getAttrValue "color" -< c
+    symmetry <- getAttrValue "symmetry" -< c
+    coeffs <- getAttrValue "coeffs" -< c
+    post <- listA (hasName "post" >>> getAttrValue "post") -< c
+    variations <- listA 
+                    (hasNameIn VT.vTransformNames 
+                     >>> 
+                     attrPair) -< c
+    vparams <- listA 
+                 (hasNamePrefixIn (map (++ "_") VT.vTransformNames) 
+                  >>>
+                  attrPair 
+                  >>> 
+                  -- convert strings to VParams value type
+                  second (arr read)) -< c
+    returnA -< let vparams' = HMS.fromList vparams
+               in
+                 F3X.Xform {
+                     weight = read weight
+                   , colorIx = read color
+                   , symmetry = read symmetry
+                   , preParams = Just . parseCoeffs $ coeffs
+                   , postParams = (listToMaybe post) >>= (Just . parseCoeffs)
+                   , variations = map (\(name, vWeight) -> 
+                                      let vt = VT.vTransformByName HMS.! name
+                                      in
+                                        V.Variation {
+                                            vTransform = vt
+                                          , weight = read vWeight
+                                          , vParams = vparams'
+                                          })
+                                    variations
+                   , vparams = vparams'
+                   }
 
+-- | Arrow to transform color elements in an XMLTree to Colors
 getColors = atTag "color" >>>
   proc c -> do
     index <- getAttrValue $ "index" -< c
@@ -55,7 +88,41 @@ getColors = atTag "color" >>>
       , rgb = parseRGBAttr rgb
       }
 
-parseFlam3 :: String -> IO F3F.Flame
-parseFlam3 flam3 = do
-  colors <- runX (parseXML flam3 >>> getColors)
-  return F3F.Flame { colors = colors }
+-- * Helpers
+
+-- adapted from example at http://www.haskell.org/haskellwiki/HXT/Practical/Simple2
+parseXML file = readDocument [ withValidate no
+                             , withRemoveWS yes  -- throw away formating WS
+                             ] file
+                                                           
+atTag tag = deep (isElem >>> hasName tag)
+
+hasNameIn = foldl1 (<+>) . map hasName
+
+hasNamePrefixIn = foldl1 (<+>) . map hasNamePrefix
+
+-- | Arrow to convert an attr and its value to a pair 
+-- > (attr_name, attr_val)
+attrPair = proc c -> do
+  name <- getName -< c
+  val <- getAttrValue name -<< c
+  returnA -< (name, val)
+
+-- * Attribute text parsers
+
+-- | Parse color rgb attribute string, convert to a Color
+parseRGBAttr :: String -> Color
+parseRGBAttr s = 
+  let [r,g,b] = parse s
+  in 
+    Color (normalizeChannel r) (normalizeChannel g) (normalizeChannel b) 1
+  where parse = map read . concat . ggetbrsRegexPR "\\d+"
+        normalizeChannel channel = (fromIntegral (channel - F3C.rgbChannelMin)) / (fromIntegral (F3C.rgbChannelMax - F3C.rgbChannelMin))
+
+-- | Parse xform/finalxform coeffs/post attribute string, convert to LinearParams
+parseCoeffs :: String -> LinearParams
+parseCoeffs s =
+  let [a,b,c,d,e,f] = parse s
+  in
+    LinearParams a b c d e f
+  where parse = map read . concat . ggetbrsRegexPR "[0-9.]+"
