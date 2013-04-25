@@ -25,6 +25,7 @@ executable demo
     hxt,
     language-haskell-extract,
     mtl,
+    normaldistribution,
     QuickCheck,
     random,
     regexpr,

@@ -36,13 +36,12 @@ initDemoPalette = do
 
 paramsToXforms =
     map (\(params, colorIx, weight) -> 
-      Xform { preParams = (Just params) 
+      Xform { preParams = Just params
             , postParams = Nothing 
-            , colorIx = colorIx
+            , colorIx = Just colorIx
             , weight = weight
             , symmetry = 0
             , variations = []
-            , vparams = HMS.empty
             })
 
 blahXforms :: [Xform]
@@ -134,8 +133,10 @@ sierpinskiSwirlStdCamera = Camera { size = (Size stdSide stdSide)
                                   , zoom = 1.8
                                   }
 
-sierpinskiSwirlPieBigDemo = (sierpinskiXforms, swirlPieVariations, sierpinskiSwirlPieDemoBigCamera)
-sierpinskiSwirlStdDemo = (sierpinskiXforms, [demoSwirl], sierpinskiSwirlStdCamera)
+addVars variations = map (\xform -> xform { variations = variations })
+
+sierpinskiSwirlPieBigDemo = (addVars swirlPieVariations sierpinskiXforms, sierpinskiSwirlPieDemoBigCamera)
+sierpinskiSwirlStdDemo = (addVars [demoSwirl] sierpinskiXforms, sierpinskiSwirlStdCamera)
 
 iterationsToDiscard = 20
 quality = 20
@@ -146,7 +147,7 @@ main :: IO ()
 main = do
   s <- newStdGen
   demoPalette <- initDemoPalette
-  let (xforms, variations, camera@(Camera {size = (Size width height)})) = sierpinskiSwirlStdDemo
+  let (xforms, camera@(Camera {size = (Size width height)})) = sierpinskiSwirlPieBigDemo
       samples = width * height * quality
       (firstPoint, s') = genFirstPoint s
       (firstColorIx, s'') = genFirstColorIx s'
@@ -154,7 +155,6 @@ main = do
       rangeCheck = inCameraCheck camera
       getXform = xformSampler xforms
       final = Nothing
-      finalColorIx = Nothing
       -- set up infinite list of plottables
       plottables = take samples $
                     ifs iterationsToDiscard
@@ -163,9 +163,7 @@ main = do
                         firstColorIx
                         firstSeed
                         getXform
-                        variations
                         final
-                        finalColorIx
       -- render pixels from plottables
       flame = render camera
                      demoPalette 

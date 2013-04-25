@@ -1,9 +1,9 @@
 module FractalFlame.Variation
-( runVariation
-, applyVariations
-, module FractalFlame.Variation.Types.Variation
-, module FractalFlame.Variation.VTransforms
-)
+  ( runVariation
+  , applyVariations
+  , module FractalFlame.Variation.Types.Variation
+  , module FractalFlame.Variation.VTransforms
+  )
 where
 
 import Control.Applicative

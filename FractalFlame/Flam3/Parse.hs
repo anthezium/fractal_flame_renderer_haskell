@@ -1,8 +1,8 @@
 {-# LANGUAGE Arrows #-}
 
 module FractalFlame.Flam3.Parse
-( parseFlam3 
-) where
+  ( parseFlam3 ) 
+where
 
 import qualified Data.HashMap.Strict as HMS
 import Data.Maybe
@@ -75,7 +75,6 @@ getXforms =
                                           , vParams = vparams'
                                           })
                                     variations
-                   , vparams = vparams'
                    }
 
 -- | Arrow to transform color elements in an XMLTree to Colors

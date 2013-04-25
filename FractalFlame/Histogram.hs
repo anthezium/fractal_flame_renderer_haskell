@@ -1,5 +1,6 @@
 module FractalFlame.Histogram 
-(render) where
+  ( render ) 
+where
 
 import Control.Monad
 import Control.Monad.ST
@@ -39,13 +40,11 @@ render camera@(Camera {size = (Size {width, height})}) palette vibrancy gamma pl
                            amax <- newSTRef floatChannelMin
                            forM_ plottables (\(Plottable point colorIx) -> do
                              let ix = mapping point
-                             -- take out this bounds check once it's working
-                             when (0 <= ix && ix <= maxIx) $ do 
-                               color <- readColor colors ix
-                               let ncolor@(Color r g b a) = plot colorIx color
-                               acc <- readSTRef amax
-                               when (a > acc) $ writeSTRef amax a
-                               writeColor colors ix ncolor)
+                             color <- readColor colors ix
+                             let ncolor@(Color r g b a) = plot colorIx color
+                             acc <- readSTRef amax
+                             when (a > acc) $ writeSTRef amax a
+                             writeColor colors ix ncolor)
                            amax' <- readSTRef amax
                            -- logarithmic scaling and gamma correction pass on each pixel
                            -- TODO: I think it should be scaleColor, then gammaCorrect.  Refactor those functions to not compute brightness twice (or dereference the same thunk twice or whatever) and verify that result is [0,1]

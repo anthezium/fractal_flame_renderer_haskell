@@ -9,10 +9,9 @@ import FractalFlame.Variation.Types.VParams
 data Xform = Xform {
     preParams  :: Maybe LinearParams -- ^ params for transform before variations are run
   , postParams :: Maybe LinearParams -- ^ params for transform after variations are run
-  , colorIx   :: Coord               -- ^ color index associated with these transforms
+  , colorIx    :: Maybe Coord        -- ^ color index associated with these transforms.  Nothing means keep old colorIx
   , weight     :: Coord              -- ^ likelihood of selection by IFS, value from 0 to 1
   , symmetry   :: Coord
   , variations :: [Variation]        -- ^ weighted set of variations
-  , vparams    :: VParams            -- ^ parameters for parametric variations
   }
 
