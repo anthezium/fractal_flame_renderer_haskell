@@ -1,8 +1,11 @@
 module FractalFlame.Variation.Types.VParams 
-( VParams
-, (!)
-, empty
-) where
+  ( VParams
+  , (!)
+  , empty
+  , fromList
+  , toList
+  ) 
+where
 
 import Data.HashMap.Strict
 

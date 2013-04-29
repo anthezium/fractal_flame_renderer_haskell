@@ -8,4 +8,5 @@ data Variation = Variation {
     weight :: Coord
   , vParams :: VParams
   , vTransform :: VTransform
+  , name :: String
   }

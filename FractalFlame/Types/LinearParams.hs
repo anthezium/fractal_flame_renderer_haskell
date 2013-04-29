@@ -10,5 +10,5 @@ data LinearParams = LinearParams {
   , d :: Coord
   , e :: Coord
   , f :: Coord
-  }
+  } deriving (Show)
 

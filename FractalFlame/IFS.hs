@@ -40,9 +40,9 @@ ifs iterationsToDiscard
              seed = 
         let (xform, seed') = getXform seed
             -- apply affine pre and post transformations, associated variations if specified
-            ((xformPoint, xformColorIx), seed'') = applyXform xform lastPoint lastColorIx seed'
+            xformRet@((xformPoint, xformColorIx), seed'') = applyXform xform lastPoint lastColorIx seed'
             -- apply final transformation if specified
-            ((thisPoint, thisColorIx), seed''')  = maybe ((xformPoint, xformColorIx), seed'') (\xf -> applyXform xf xformPoint xformColorIx seed'') finalXform
+            ((thisPoint, thisColorIx), seed''')  = maybe xformRet (\xf -> applyXform xf xformPoint xformColorIx seed'') finalXform
             this = Plottable thisPoint thisColorIx
             next = helper thisPoint 
                           thisColorIx

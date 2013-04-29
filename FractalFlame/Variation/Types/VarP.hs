@@ -30,7 +30,7 @@ data VarP = VarP {
   , d            :: Coord
   , e            :: Coord
   , f            :: Coord
-  , vparams      :: VParams
+  , vParams      :: VParams
   , weight       :: Coord
   , x            :: Coord
   , y            :: Coord

@@ -30,7 +30,7 @@ runVariation :: Variation -- ^ 'variation'.  Supplies the VTransform (variation 
              -> StdGen -- ^ 'seed'.  Current seed for generating random numbers (some variations consume random numbers).
              -> CartesianPoint -- ^ 'point'.  Point to which this variation should be applied.
              -> (CartesianPoint, StdGen) -- ^ (point', seed').  Transformed point and new seed.
-runVariation (Variation weight vparams vtransform) linearParams@(LinearParams a b c d e f) seed point@(Point x y) = 
+runVariation (Variation {weight, vParams, vTransform}) linearParams@(LinearParams a b c d e f) seed point@(Point x y) = 
   let fList = concat . map (replicate 5) $ [psi, omega, lambda]
       (   [psi1, psi2, psi3, psi4, psi5, 
            omega1, omega2, omega3, omega4, omega5, 
@@ -41,7 +41,7 @@ runVariation (Variation weight vparams vtransform) linearParams@(LinearParams a 
       gaussianR = gaussianRandom gaussians
       (x, y, r, theta, phi) = pointAttrs point
       -- is there a way to avoid typing each name twice?
-      point' = vtransform $ VarP {
+      point' = vTransform $ VarP {
            psi1 = psi1
         ,  psi2 = psi2
         ,  psi3 = psi3
@@ -65,7 +65,7 @@ runVariation (Variation weight vparams vtransform) linearParams@(LinearParams a 
         ,  d = d
         ,  e = e
         ,  f = f
-        ,  vparams = vparams
+        ,  vParams = vParams
         ,  weight = weight
         ,  x = x
         ,  y = y
@@ -83,7 +83,7 @@ applyVariations linearParams vars seed point =
   let (seed', seed'') = split seed
       seedVars  = zip (seeds seed') vars
       totalWeight = sum $ map FractalFlame.Variation.Types.Variation.weight vars -- to normalize weights
-      point' = mconcat $ map (\(s, variation@(Variation weight _ _))-> 
+      point' = mconcat $ map (\(s, variation@(Variation {weight}))-> 
                                let transform = runVariation variation linearParams s
                                in
                                  scalePoint (weight / totalWeight) . fst . transform $ point) 

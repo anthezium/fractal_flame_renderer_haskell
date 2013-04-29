@@ -1,15 +1,11 @@
 module Main where
 
 import Control.Monad
-import Data.Array
-import qualified Data.HashMap.Strict as HMS
-import qualified Data.Vector.Storable as SV
-import Test.QuickCheck
-import Test.QuickCheck.Gen
 import System.Random
 
 import FractalFlame.Camera
 import FractalFlame.Color
+import FractalFlame.Flam3.Flame
 import FractalFlame.Flam3.Parse
 import FractalFlame.Flam3.Types.Flame
 import FractalFlame.Flam3.Types.Xform
@@ -25,136 +21,28 @@ import FractalFlame.Types.PixelFlame
 import FractalFlame.Types.Size
 import FractalFlame.Variation
 
--- Most of the stuff in this module is temporary.  As the renderer moves closer to being able to render flam3s as is,
--- the hardcoded values for xforms, the camera, etc. will be replaced by "parse flam3, render as it specifies, display"
-
-initDemoPalette :: IO Palette
-initDemoPalette = do
-  flam3 <- parseFlam3 "flam3/electricsheep.244.73060.flam3"
-  let fcs = colors flam3
-  return $ buildPalette fcs
-
-paramsToXforms =
-    map (\(params, colorIx, weight) -> 
-      Xform { preParams = Just params
-            , postParams = Nothing 
-            , colorIx = Just colorIx
-            , weight = weight
-            , symmetry = 0
-            , variations = []
-            })
-
-blahXforms :: [Xform]
-blahXforms = 
-  let params = [ ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.0 ), 0/5, 1)
-               , ((LinearParams   0.5   0.0   0.5   0.0   0.5    0.0 ), 1/5, 1)
-               , ((LinearParams   0.5   0.0   0.0   0.0   0.5    0.5 ), 2/5, 1)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0   0.5    0.0 ), 3/5, 1)
-               , ((LinearParams (-0.5)  0.0 (-0.5)  0.0   0.5    0.0 ), 4/5, 1)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0   0.5    0.5 ), 5/5, 1)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0 (-0.5)   0.0 ), 5/5, 1)
-               , ((LinearParams (-0.5)  0.0 (-0.5)  0.0 (-0.5)   0.0 ), 4/5, 1)
-               , ((LinearParams (-0.5)  0.0   0.0   0.0 (-0.5) (-0.5)), 3/5, 1)
-               , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5)   0.0 ), 2/5, 1)
-               , ((LinearParams   0.5   0.0   0.5   0.0 (-0.5)   0.0 ), 1/5, 1)
-               , ((LinearParams   0.5   0.0   0.0   0.0 (-0.5) (-0.5)), 0/5, 1)
-               ]
-  in paramsToXforms params
-
-sierpinskiXforms =
-  let params = [ ((LinearParams    0.5   0.0   0.0   0.0   0.5   0.0),             0/2, 1)
-               , ((LinearParams    0.5   0.0   0.25  0.0   0.5  (0.5*(sqrt 3)/2)), 1/2, 1)
-               , ((LinearParams    0.5   0.0   0.5   0.0   0.5   0.0),             2/2, 1)
-               ]
-  in paramsToXforms params
-
-demoLinear :: Variation
-demoLinear = Variation {
-    weight = 1
-  , vParams = HMS.empty
-  , vTransform = vt_linear
-  }
-
-demoSpiral :: Variation
-demoSpiral = Variation {
-    weight = 1
-  , vParams = HMS.empty
-  , vTransform = vt_spiral
-  }
-
-demoSinusoidal :: Variation
-demoSinusoidal = Variation {
-    weight = 1
-  , vParams = HMS.empty
-  , vTransform = vt_sinusoidal
-  }
-
-demoSwirl :: Variation
-demoSwirl = Variation {
-    weight = 1
-  , vParams = HMS.empty
-  , vTransform = vt_swirl
-  }
-
-demoDisc :: Variation
-demoDisc = Variation {
-    weight = 1
-  , vParams = HMS.empty
-  , vTransform = vt_disc
-  }
-
-demoPie :: Variation
-demoPie = Variation {
-    weight = 0.002
-  , vParams = HMS.fromList [("pie_slices", 5), ("pie_rotation", pi / 5), ("pie_thickness", 0.1)]
-  , vTransform = vt_pie
-  }
-
-
-swirlPieVariations :: [Variation]
-swirlPieVariations = [demoSwirl, demoPie]
---demoVariations = []
-
--- camera
-bigSide = 800
-stdSide = 400
-sierpinskiSwirlPieDemoBigCamera = Camera { size = (Size bigSide bigSide)
-                                         --, center = (Point (-0.2) 0.2)
-                                         , center = (Point 0.18 0.38)
-                                         , scale = bigSide / 2
-                                         , rotate = 0
-                                         , zoom = 1.2
-                                         }
-
-sierpinskiSwirlStdCamera = Camera { size = (Size stdSide stdSide)
-                                  , center = (Point (-0.2) 0.2)
-                                  , scale = stdSide / 2
-                                  , rotate = 0
-                                  , zoom = 1.8
-                                  }
-
-addVars variations = map (\xform -> xform { variations = variations })
-
-sierpinskiSwirlPieBigDemo = (addVars swirlPieVariations sierpinskiXforms, sierpinskiSwirlPieDemoBigCamera)
-sierpinskiSwirlStdDemo = (addVars [demoSwirl] sierpinskiXforms, sierpinskiSwirlStdCamera)
+initFlame :: String -> IO Flame
+initFlame path = do
+  flame <- parseFlam3 path
+  let flame' = postProcessFlame flame
+  return flame'
 
 iterationsToDiscard = 20
-quality = 20
-vibrancy = 0.6
-gamma = 3
 
 main :: IO ()
 main = do
   s <- newStdGen
-  demoPalette <- initDemoPalette
-  let (xforms, camera@(Camera {size = (Size width height)})) = sierpinskiSwirlPieBigDemo
-      samples = width * height * quality
+  flame@(Flame { xforms, finalXform
+               , camera = camera@(Camera {size = (Size width height)})
+               , quality, vibrancy, gamma
+               , colors = (ColorPalette palette)
+               }) <- initFlame "flam3/sierpinski_swirl_pie_demo_medium.flam3"
+  let samples = width * height * quality
       (firstPoint, s') = genFirstPoint s
       (firstColorIx, s'') = genFirstColorIx s'
       firstSeed = s''
       rangeCheck = inCameraCheck camera
       getXform = xformSampler xforms
-      final = Nothing
       -- set up infinite list of plottables
       plottables = take samples $
                     ifs iterationsToDiscard
@@ -163,10 +51,10 @@ main = do
                         firstColorIx
                         firstSeed
                         getXform
-                        final
+                        finalXform
       -- render pixels from plottables
       flame = render camera
-                     demoPalette 
+                     palette 
                      vibrancy
                      gamma
                      plottables 
