@@ -35,7 +35,7 @@ main = do
                , camera = camera@(Camera {size = (Size width height)})
                , quality, vibrancy, gamma
                , colors = (ColorPalette palette)
-               }), s') <- initFlame "flam3/sierpinski_swirl_pie_demo_medium_ransym.flam3" s
+               }), s') <- initFlame "flam3/sierpinski_demo_medium.flam3" s
   let samples = width * height * quality
       (firstPoint, s'') = genFirstPoint s'
       (firstColorIx, s''') = genFirstColorIx s''

@@ -48,7 +48,7 @@ render camera@(Camera {size = (Size {width, height})}) palette vibrancy gamma pl
                            amax' <- readSTRef amax
                            -- logarithmic scaling and gamma correction pass on each pixel
                            -- TODO: I think it should be scaleColor, then gammaCorrect.  Refactor those functions to not compute brightness twice (or dereference the same thunk twice or whatever) and verify that result is [0,1]
-                           colorMap width height (scaleColor amax' . gammaCorrect amax') colors
+                           colorMap width height (gammaCorrect . scaleColor amax') colors
                            colors' <- SV.unsafeFreeze colors
                            return (amax', colors')
                      
