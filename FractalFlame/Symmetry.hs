@@ -1,11 +1,13 @@
 module FractalFlame.Symmetry 
-( addSymmetry ) 
+  ( addSymmetry ) 
 where
 
 import Data.Maybe
+import System.Random
 
 import FractalFlame.Flam3.Types.Flame
 import FractalFlame.Flam3.Types.Xform
+import FractalFlame.Generator
 import FractalFlame.Types.LinearParams
 
 -- | Add rotational and/or dihedral symmetry transforms to the specified Flame based on the symmetry parameter:
@@ -14,18 +16,22 @@ import FractalFlame.Types.LinearParams
 --   sym=0 means pick a random symmetry (maybe none)
 --   sym=-1 means bilateral (reflection)
 --   sym=-2 or less means rotational and reflective
-addSymmetry :: Flame 
+addSymmetry :: StdGen
             -> Flame
-addSymmetry flame@(Flame {xforms, symmetry}) =
+            -> (Flame, StdGen)
+addSymmetry s flame@(Flame {xforms, symmetry}) =
   let totalWeight = sum $ map weight xforms
-      flipX = if symmetry < 0 then Just $ flipXform totalWeight else Nothing
-      fabsym = fromIntegral $ abs symmetry
+      (symmetry', s') = if symmetry == 0 then symmetryGenDraves s else (symmetry, s)
+      flipX = if symmetry' < 0 then Just $ flipXform totalWeight else Nothing
+      fabsym = fromIntegral $ abs symmetry'
       theta = 2 * pi / fabsym
       thetas = map (* theta) [1..fabsym - 1]
       rotateXs = map (rotateXform totalWeight) thetas
       symXs = (maybeToList flipX) ++ rotateXs
+      flame' = flame { xforms = xforms ++ symXs }
   in
-    flame { xforms = xforms ++ symXs }
+    (flame', s')
+    
 
 -- helpers
 
@@ -33,7 +39,7 @@ simpleXform weight = Xform {
     preParams = Nothing
   , postParams = Nothing
   , colorIx = Nothing
-  , weight = 0
+  , weight = weight
   , symmetry = 0
   , variations = []
   }

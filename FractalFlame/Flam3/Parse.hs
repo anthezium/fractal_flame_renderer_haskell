@@ -28,13 +28,8 @@ import qualified FractalFlame.Variation.VTransforms as VT
 parseFlam3 :: String -- ^ Path to .flam3
            -> IO F3F.Flame
 parseFlam3 flam3 = do
-  flames <- runX (parseXML flam3 >>> getFlame)
   -- should only be one flame element per file
-  let flame = head flames
-      variations = F3X.variations . head . F3F.xforms $ flame
-  putStrLn $ "n_variations: " ++ (show . length $ variations )
-  putStrLn $ "variation_names/weights: " ++ show (map (\v -> ((V.name v), (V.weight v))) variations)
-  putStrLn $ "vparams: " ++ show (map (\v -> VP.toList . V.vParams $ v) variations)
+  [flame] <- runX (parseXML flam3 >>> getFlame)
   return flame 
   
 -- * XMLTree transformer Arrows

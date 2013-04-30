@@ -21,26 +21,25 @@ import FractalFlame.Types.PixelFlame
 import FractalFlame.Types.Size
 import FractalFlame.Variation
 
-initFlame :: String -> IO Flame
-initFlame path = do
+initFlame :: String -> StdGen -> IO (Flame, StdGen)
+initFlame path s = do
   flame <- parseFlam3 path
-  let flame' = postProcessFlame flame
-  return flame'
+  return $ postProcessFlame s flame
 
 iterationsToDiscard = 20
 
 main :: IO ()
 main = do
   s <- newStdGen
-  flame@(Flame { xforms, finalXform
+  (flame@(Flame { xforms, finalXform
                , camera = camera@(Camera {size = (Size width height)})
                , quality, vibrancy, gamma
                , colors = (ColorPalette palette)
-               }) <- initFlame "flam3/sierpinski_swirl_pie_demo_medium.flam3"
+               }), s') <- initFlame "flam3/sierpinski_swirl_pie_demo_medium_ransym.flam3" s
   let samples = width * height * quality
-      (firstPoint, s') = genFirstPoint s
-      (firstColorIx, s'') = genFirstColorIx s'
-      firstSeed = s''
+      (firstPoint, s'') = genFirstPoint s'
+      (firstColorIx, s''') = genFirstColorIx s''
+      firstSeed = s'''
       rangeCheck = inCameraCheck camera
       getXform = xformSampler xforms
       -- set up infinite list of plottables
